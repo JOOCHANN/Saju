@@ -1,7 +1,8 @@
 # Saju 서비스 기획서 (Master Planning Document)
 
-> 이 문서는 Saju 프로젝트의 최상위 기획 문서입니다.
-> 세부 내용은 `docs/` 디렉토리의 각 문서를 참조하세요.
+> 이 문서는 Saju 프로젝트의 최상위 기획 문서 + 개발 진행 현황 기록입니다.
+> **새 세션 시작 시 → "개발 단계별 진행 현황" 섹션을 먼저 확인하세요.**
+> 세부 기획은 `docs/` 디렉토리의 각 문서를 참조하세요.
 
 ## 서비스 한줄 정의
 
@@ -28,11 +29,11 @@
 
 ---
 
-## 폴더 구조 (개발 시작 전 기준)
+## 폴더 구조 (Step 1 완료 기준)
 
 ```
 Saju/
-├── PLANNING.md                    # 이 문서 (최상위 기획서)
+├── PLANNING.md                    # 이 문서 (최상위 기획서 + 개발 진행 현황)
 ├── CLAUDE.md                      # Claude Code 지침
 ├── docs/                          # 기획/설계 문서
 │   ├── 01-product-vision.md
@@ -44,20 +45,137 @@ Saju/
 │   ├── 07-database-schema.md
 │   ├── 08-api-design.md
 │   ├── 09-security-privacy.md
-│   └── 10-roadmap.md
-├── src/                           # 소스 코드 (개발 시 생성)
-│   ├── app/                       # Next.js App Router
-│   ├── components/                # React 컴포넌트
-│   ├── lib/                       # 핵심 비즈니스 로직
-│   ├── hooks/                     # React Hooks
-│   ├── stores/                    # 상태 관리 (Zustand)
-│   ├── types/                     # TypeScript 타입 정의
-│   └── utils/                     # 유틸리티 함수
-├── prisma/                        # DB 스키마 (Prisma ORM)
-│   └── schema.prisma
-└── public/                        # 정적 파일
-    └── images/
+│   ├── 10-roadmap.md
+│   ├── 11-cloudflare-setup.md
+│   └── src-guide.md
+├── src/
+│   ├── app/
+│   │   ├── layout.tsx             # 루트 레이아웃 (한국어 메타데이터)
+│   │   ├── page.tsx               # 홈 (임시 placeholder)
+│   │   └── globals.css            # Tailwind + shadcn/ui CSS 변수
+│   └── lib/
+│       └── utils.ts               # cn() 유틸리티
+├── public/
+├── package.json
+├── next.config.ts
+├── open-next.config.ts            # OpenNext Cloudflare 어댑터 설정
+├── wrangler.toml                  # Cloudflare Workers 배포 설정
+├── tailwind.config.ts
+├── tsconfig.json
+├── .prettierrc
+├── .env.example                   # 환경 변수 템플릿
+└── .dev.vars.example              # Cloudflare 로컬 개발 시크릿 템플릿
 ```
+
+---
+
+## 개발 단계별 진행 현황
+
+> 새 세션을 시작할 때 이 섹션을 먼저 확인하세요.
+> 완료 단계부터 이어서 작업합니다.
+
+### 진행 현황 요약
+
+| 단계 | 내용 | 상태 |
+|------|------|------|
+| Step 1 | 프로젝트 초기화 | ✅ 완료 |
+| Step 2 | 기본 레이아웃 (하단 탭바, 헤더, 홈 뼈대) | ✅ 완료 |
+| Step 3 | DB 설정 (Supabase + Drizzle 스키마 + 마이그레이션) | ⬜ 미완료 |
+| Step 4 | 인증 (NextAuth.js v5 — Google/Kakao OAuth + 이메일) | ⬜ 미완료 |
+| Step 5 | 사주 계산 엔진 (순수 TypeScript 간지/사주/오행) | ⬜ 미완료 |
+| Step 6 | AI 연동 (Claude API + SSE 스트리밍 + 결과 UI) | ⬜ 미완료 |
+| Step 7 | 오늘의 운세 (12간지 UI + Redis 캐싱 + 운세 카드) | ⬜ 미완료 |
+| Step 8 | 마이페이지 / 보관함 (분석 저장·조회, 계정 설정) | ⬜ 미완료 |
+
+---
+
+### Step 1 — 프로젝트 초기화 ✅
+
+**완료 내용:**
+- Next.js 15.3.9 수동 초기화 (`create-next-app` 대문자 이슈로 수동 설정)
+- 설정 파일: `package.json`, `next.config.ts`, `tsconfig.json`, `tailwind.config.ts`, `postcss.config.mjs`, `eslint.config.mjs`, `.prettierrc`
+- Cloudflare 배포 설정: `wrangler.toml`, `open-next.config.ts` (`@opennextjs/cloudflare` 사용)
+- 소스 파일: `src/app/layout.tsx`, `src/app/page.tsx`, `src/app/globals.css`, `src/lib/utils.ts`
+- 환경 변수 템플릿: `.env.example`, `.dev.vars.example`
+- `pnpm install` 완료, `next build` 빌드 테스트 통과
+- GitHub `origin/main` 브랜치에 푸시 완료
+
+**주요 기술 결정:**
+- Prisma → **Drizzle ORM** (Cloudflare Edge Runtime 비호환 이슈)
+- `@cloudflare/next-on-pages` → **`@opennextjs/cloudflare`** (공식 권장 어댑터로 교체)
+- ISR 미지원 → Redis 캐싱으로 대체 예정
+- `next@15.3.9` (CVE-2025-66478 보안 패치 버전)
+
+---
+
+### Step 2 — 기본 레이아웃 ✅
+
+**완료 내용:**
+- `src/components/layout/BottomTabBar.tsx` — 고정 하단 네비게이션 (홈/운세/사주/보관함/마이), 라우트별 활성 상태
+- `src/components/layout/Header.tsx` — 상단 헤더, 페이지별 동적 타이틀 (client component)
+- `src/app/layout.tsx` — 루트 레이아웃에 Header + BottomTabBar 포함
+- `src/app/page.tsx` — 홈 화면 (날짜 인사, 운세 CTA 카드, 서비스 그리드 2×2, AI 사주 배너)
+- `src/app/fortune/page.tsx`, `saju/page.tsx`, `storage/page.tsx`, `mypage/page.tsx` — 탭별 플레이스홀더 페이지
+
+**주요 기술 결정:**
+- `@opennextjs/cloudflare` v1.7+의 새 API로 `open-next.config.ts` 마이그레이션 (`defineCloudflareConfig` 사용)
+- 루트 레이아웃에 크롬 포함 (향후 Step 4 auth 추가 시 route group으로 재구성 예정)
+- `@eslint/eslintrc`, `eslint-plugin-react-hooks` devDependency 추가
+
+---
+
+### Step 3 — DB 설정 ⬜
+
+**작업 예정:**
+- Supabase 프로젝트 연결 (`@supabase/supabase-js`)
+- `src/lib/db/` — Drizzle ORM 설정 및 스키마 정의
+- `drizzle-kit generate` + `drizzle-kit migrate` 실행
+
+---
+
+### Step 4 — 인증 ⬜
+
+**작업 예정:**
+- NextAuth.js v5 (Auth.js) 설정
+- Google OAuth, Kakao OAuth 프로바이더
+- 이메일 로그인 (Resend)
+- `src/auth.ts`, `src/app/api/auth/[...nextauth]/route.ts`
+
+---
+
+### Step 5 — 사주 계산 엔진 ⬜
+
+**작업 예정:**
+- 순수 TypeScript 사주 엔진 (`src/lib/saju/`)
+- 간지(干支), 사주팔자, 오행(五行), 십신(十神) 계산 로직
+- 서버/클라이언트 모두 사용 가능한 Edge 호환 모듈
+
+---
+
+### Step 6 — AI 연동 ⬜
+
+**작업 예정:**
+- Anthropic Claude API 연동 (`src/lib/ai/`)
+- SSE 스트리밍 응답 처리
+- 사주 분석 결과 UI 컴포넌트
+
+---
+
+### Step 7 — 오늘의 운세 ⬜
+
+**작업 예정:**
+- 12간지 띠별 운세 UI
+- Upstash Redis 캐싱 (일별 갱신)
+- 운세 카드 컴포넌트
+
+---
+
+### Step 8 — 마이페이지 / 보관함 ⬜
+
+**작업 예정:**
+- 분석 결과 저장 및 조회
+- 계정 설정 페이지
+- 사주 보관함 목록 UI
 
 ---
 
