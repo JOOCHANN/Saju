@@ -85,7 +85,7 @@ Saju/
 | Step 5 | 사주 계산 엔진 (순수 TypeScript 간지/사주/오행) | ✅ 완료 |
 | Step 6 | AI 연동 (Claude API + SSE 스트리밍 + 결과 UI) | ✅ 완료 |
 | Step 7 | 오늘의 운세 (12간지 UI + Redis 캐싱 + 운세 카드) | ✅ 완료 |
-| Step 8 | 마이페이지 / 보관함 (분석 저장·조회, 계정 설정) | ⬜ 미완료 |
+| Step 8 | 마이페이지 / 보관함 (분석 저장·조회, 계정 설정) | ✅ 완료 |
 
 ---
 
@@ -244,12 +244,30 @@ pnpm db:migrate    # Supabase에 스키마 적용
 
 ---
 
-### Step 8 — 마이페이지 / 보관함 ⬜
+### Step 8 — 마이페이지 / 보관함 ✅
 
-**작업 예정:**
-- 분석 결과 저장 및 조회
-- 계정 설정 페이지
-- 사주 보관함 목록 UI
+**완료 내용:**
+- `src/app/api/readings/route.ts` — GET(목록)/POST(저장) API (runtime: nodejs)
+- `src/app/api/readings/[id]/route.ts` — DELETE API (본인 소유 확인 후 삭제)
+- `src/app/api/profile/route.ts` — GET/PUT API (생년월일 AES-256-GCM 암호화 저장)
+- `src/components/storage/StorageClient.tsx` — 보관함 클라이언트 컴포넌트
+  - 일간 배지 + 4기둥 요약 + 오행 분포 태그 + 저장 날짜
+  - AI 분석 토글 (600자 미리보기)
+  - 삭제 버튼 (confirm → optimistic UI)
+  - 빈 상태: 분석하기 링크
+- `src/app/storage/page.tsx` — 서버 컴포넌트, DB에서 readings 직접 조회
+- `src/app/mypage/saju-info/page.tsx` — 내 사주 정보 입력/수정 클라이언트 폼
+  - 기존 프로필 자동 로드 (복호화)
+  - 저장 후 마이페이지로 리다이렉트
+- `src/components/saju/SajuClient.tsx` — 저장 버튼 추가
+  - 분석 완료(status=done) 시 "보관함에 저장" 버튼 표시
+  - 비로그인 시: "로그인하면 저장 가능" 링크
+- `src/app/saju/page.tsx` — auth() → isLoggedIn prop 전달
+
+**주요 기술 결정:**
+- 생년월일 민감 데이터: `user_profiles.birthDate/birthHour` AES-256-GCM 암호화
+- `readings.resultData`: 사주 계산 결과 + AI 텍스트 (민감하지 않은 데이터만, 별도 암호화 없음)
+- 보관함 페이지: 서버 컴포넌트로 초기 데이터 fetch → `StorageClient`로 삭제 인터랙션 처리
 
 ---
 

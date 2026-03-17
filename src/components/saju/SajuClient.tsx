@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Loader2, RotateCcw, Sparkles } from 'lucide-react'
+import { BookmarkCheck, ChevronDown, Loader2, LogIn, RotateCcw, Sparkles } from 'lucide-react'
+import Link from 'next/link'
 import type { SajuResult } from '@/lib/saju'
 import { ELEMENT_NAMES } from '@/lib/saju'
 
@@ -120,7 +121,7 @@ function ElementBalance({ balance }: { balance: SajuResult['elementBalance'] }) 
 // 메인 컴포넌트
 // ────────────────────────────────────────────────────────────────────────────
 
-export default function SajuClient() {
+export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolean }) {
   const [year, setYear] = useState('')
   const [month, setMonth] = useState('1')
   const [day, setDay] = useState('1')
@@ -131,6 +132,8 @@ export default function SajuClient() {
   const [sajuResult, setSajuResult] = useState<SajuResult | null>(null)
   const [aiText, setAiText] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
+  const [isSaving, setIsSaving] = useState(false)
+  const [isSaved, setIsSaved] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -204,6 +207,22 @@ export default function SajuClient() {
     setAiText('')
     setErrorMsg('')
     setStatus('idle')
+    setIsSaved(false)
+  }
+
+  async function handleSave() {
+    if (!sajuResult || !aiText || isSaving || isSaved) return
+    setIsSaving(true)
+    try {
+      const res = await fetch('/api/readings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sajuResult, aiText }),
+      })
+      if (res.ok) setIsSaved(true)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   // ── 입력 폼 ──────────────────────────────────────────────────────────────
@@ -440,6 +459,41 @@ export default function SajuClient() {
           </div>
         )}
       </div>
+
+      {/* 저장 버튼 — 분석 완료 후 표시 */}
+      {status === 'done' && (
+        <div className="rounded-xl border border-border bg-card p-4">
+          {isLoggedIn ? (
+            isSaved ? (
+              <div className="flex items-center justify-center gap-2 text-sm font-medium text-green-600">
+                <BookmarkCheck size={16} />
+                보관함에 저장되었어요
+              </div>
+            ) : (
+              <button
+                onClick={handleSave}
+                disabled={isSaving}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+              >
+                {isSaving ? (
+                  <Loader2 size={15} className="animate-spin" />
+                ) : (
+                  <BookmarkCheck size={15} />
+                )}
+                {isSaving ? '저장 중...' : '보관함에 저장'}
+              </button>
+            )
+          ) : (
+            <Link
+              href="/login?callbackUrl=/saju"
+              className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+            >
+              <LogIn size={14} />
+              로그인하면 분석 결과를 저장할 수 있어요
+            </Link>
+          )}
+        </div>
+      )}
     </div>
   )
 }

@@ -1,22 +1,41 @@
-import { Archive } from 'lucide-react'
+import { auth } from '@/auth'
+import { redirect } from 'next/navigation'
+import { db } from '@/lib/db'
+import { readings } from '@/lib/db/schema'
+import { eq, desc } from 'drizzle-orm'
+import StorageClient, { type StoredReading } from '@/components/storage/StorageClient'
 
-export default function StoragePage() {
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
+export default async function StoragePage() {
+  const session = await auth()
+  if (!session?.user?.id) redirect('/login?callbackUrl=/storage')
+
+  const list = await db
+    .select({
+      id: readings.id,
+      type: readings.type,
+      resultData: readings.resultData,
+      createdAt: readings.createdAt,
+    })
+    .from(readings)
+    .where(eq(readings.userId, session.user.id))
+    .orderBy(desc(readings.createdAt))
+    .limit(50)
+
   return (
-    <div className="flex flex-col items-center justify-center gap-4 px-4 py-20 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted">
-        <Archive size={32} className="text-muted-foreground" strokeWidth={1.5} />
-      </div>
+    <div className="flex flex-col gap-4 px-4 py-5">
       <div>
-        <h2 className="text-xl font-bold">보관함</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
-          저장한 사주 분석 결과를
-          <br />
-          여기서 확인할 수 있어요
-        </p>
+        <h1 className="text-xl font-bold">보관함</h1>
+        <p className="mt-1 text-sm text-muted-foreground">저장한 사주 분석 {list.length}개</p>
       </div>
-      <span className="rounded-full bg-muted px-4 py-1.5 text-sm font-medium text-muted-foreground">
-        로그인 후 이용 가능
-      </span>
+      <StorageClient
+        initialReadings={list.map((r) => ({
+          ...r,
+          createdAt: r.createdAt.toISOString(),
+        })) as StoredReading[]}
+      />
     </div>
   )
 }
