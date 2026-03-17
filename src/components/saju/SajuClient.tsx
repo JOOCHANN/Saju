@@ -1,0 +1,445 @@
+'use client'
+
+import { useState } from 'react'
+import { ChevronDown, Loader2, RotateCcw, Sparkles } from 'lucide-react'
+import type { SajuResult } from '@/lib/saju'
+import { ELEMENT_NAMES } from '@/lib/saju'
+
+// ────────────────────────────────────────────────────────────────────────────
+// 상수
+// ────────────────────────────────────────────────────────────────────────────
+
+const HOURS = [
+  { label: '모름 (시간 미입력)', value: '' },
+  { label: '子時 밤 11시 ~ 새벽 1시', value: '23' },
+  { label: '丑時 새벽 1시 ~ 3시', value: '1' },
+  { label: '寅時 새벽 3시 ~ 5시', value: '3' },
+  { label: '卯時 새벽 5시 ~ 7시', value: '5' },
+  { label: '辰時 아침 7시 ~ 9시', value: '7' },
+  { label: '巳時 오전 9시 ~ 11시', value: '9' },
+  { label: '午時 오전 11시 ~ 오후 1시', value: '11' },
+  { label: '未時 오후 1시 ~ 3시', value: '13' },
+  { label: '申時 오후 3시 ~ 5시', value: '15' },
+  { label: '酉時 오후 5시 ~ 7시', value: '17' },
+  { label: '戌時 저녁 7시 ~ 9시', value: '19' },
+  { label: '亥時 저녁 9시 ~ 11시', value: '21' },
+]
+
+const ELEMENT_COLORS: Record<string, string> = {
+  목: 'bg-green-500',
+  화: 'bg-red-500',
+  토: 'bg-amber-500',
+  금: 'bg-gray-400',
+  수: 'bg-blue-500',
+}
+
+const ELEMENT_TEXT_COLORS: Record<string, string> = {
+  목: 'text-green-700',
+  화: 'text-red-700',
+  토: 'text-amber-700',
+  금: 'text-gray-600',
+  수: 'text-blue-700',
+}
+
+const ELEMENT_BG_LIGHT: Record<string, string> = {
+  목: 'bg-green-100',
+  화: 'bg-red-100',
+  토: 'bg-amber-100',
+  금: 'bg-gray-100',
+  수: 'bg-blue-100',
+}
+
+type Status = 'idle' | 'streaming' | 'done' | 'error'
+
+// ────────────────────────────────────────────────────────────────────────────
+// 서브 컴포넌트: 사주 기둥 카드
+// ────────────────────────────────────────────────────────────────────────────
+
+function PillarCard({
+  label,
+  pillar,
+}: {
+  label: string
+  pillar: SajuResult['fourPillars']['year']
+}) {
+  const elem = pillar.stemElement
+  return (
+    <div className="flex flex-col items-center gap-1 rounded-xl border border-border bg-card px-2 py-3">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <span
+        className={`text-2xl font-bold ${ELEMENT_TEXT_COLORS[elem] ?? 'text-foreground'}`}
+      >
+        {pillar.stem}
+      </span>
+      <span className="text-xl font-semibold text-foreground">{pillar.branch}</span>
+      <span
+        className={`mt-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${ELEMENT_BG_LIGHT[elem]} ${ELEMENT_TEXT_COLORS[elem]}`}
+      >
+        {elem}
+      </span>
+      <span className="text-[10px] text-muted-foreground">
+        {pillar.stemKorean}
+        {pillar.branchKorean}
+      </span>
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// 서브 컴포넌트: 오행 분포
+// ────────────────────────────────────────────────────────────────────────────
+
+function ElementBalance({ balance }: { balance: SajuResult['elementBalance'] }) {
+  const total = Object.values(balance).reduce((a, b) => a + b, 0)
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <p className="mb-3 text-xs font-semibold text-muted-foreground">오행 분포</p>
+      <div className="flex flex-col gap-2">
+        {ELEMENT_NAMES.map((elem) => {
+          const count = balance[elem]
+          const pct = total > 0 ? (count / total) * 100 : 0
+          return (
+            <div key={elem} className="flex items-center gap-2">
+              <span className="w-4 text-center text-xs font-medium">{elem}</span>
+              <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${ELEMENT_COLORS[elem]}`}
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+              <span className="w-4 text-right text-xs text-muted-foreground">{count}</span>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// 메인 컴포넌트
+// ────────────────────────────────────────────────────────────────────────────
+
+export default function SajuClient() {
+  const [year, setYear] = useState('')
+  const [month, setMonth] = useState('1')
+  const [day, setDay] = useState('1')
+  const [hourValue, setHourValue] = useState('')
+  const [gender, setGender] = useState<'male' | 'female'>('male')
+
+  const [status, setStatus] = useState<Status>('idle')
+  const [sajuResult, setSajuResult] = useState<SajuResult | null>(null)
+  const [aiText, setAiText] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+
+    const y = parseInt(year)
+    const m = parseInt(month)
+    const d = parseInt(day)
+    const hour = hourValue !== '' ? parseInt(hourValue) : undefined
+
+    if (isNaN(y) || y < 1900 || y > 2020) return
+
+    setAiText('')
+    setErrorMsg('')
+    setSajuResult(null)
+    setStatus('streaming')
+
+    try {
+      const res = await fetch('/api/saju/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ year: y, month: m, day: d, hour, gender }),
+      })
+
+      if (!res.ok || !res.body) {
+        throw new Error(`서버 오류 (${res.status})`)
+      }
+
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const raw = line.slice(6).trim()
+          if (raw === '[DONE]') {
+            setStatus('done')
+            continue
+          }
+          try {
+            const evt = JSON.parse(raw) as
+              | { type: 'saju'; payload: SajuResult }
+              | { type: 'text'; text: string }
+              | { type: 'error'; message: string }
+
+            if (evt.type === 'saju') setSajuResult(evt.payload)
+            else if (evt.type === 'text') setAiText((prev) => prev + evt.text)
+            else if (evt.type === 'error') throw new Error(evt.message)
+          } catch {
+            // JSON 파싱 오류 무시
+          }
+        }
+      }
+
+      setStatus('done')
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : '분석 중 오류가 발생했어요.')
+      setStatus('error')
+    }
+  }
+
+  function handleReset() {
+    setSajuResult(null)
+    setAiText('')
+    setErrorMsg('')
+    setStatus('idle')
+  }
+
+  // ── 입력 폼 ──────────────────────────────────────────────────────────────
+  if (status === 'idle') {
+    return (
+      <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-4 py-5">
+        <div>
+          <h1 className="text-xl font-bold">AI 사주 분석</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            생년월일을 입력하면 AI가 사주팔자를 분석해드려요
+          </p>
+        </div>
+
+        {/* 성별 */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium">성별</label>
+          <div className="flex gap-2">
+            {(['male', 'female'] as const).map((g) => (
+              <button
+                key={g}
+                type="button"
+                onClick={() => setGender(g)}
+                className={`flex-1 rounded-xl border py-2.5 text-sm font-medium transition-colors ${
+                  gender === g
+                    ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                    : 'border-border bg-card text-muted-foreground hover:bg-muted/50'
+                }`}
+              >
+                {g === 'male' ? '남성' : '여성'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 생년 */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium" htmlFor="year">
+            출생 연도
+          </label>
+          <input
+            id="year"
+            type="number"
+            inputMode="numeric"
+            placeholder="예) 1990"
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+            min={1900}
+            max={2020}
+            required
+            className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          />
+        </div>
+
+        {/* 생월 / 생일 */}
+        <div className="flex gap-3">
+          <div className="flex flex-1 flex-col gap-1.5">
+            <label className="text-sm font-medium" htmlFor="month">
+              월
+            </label>
+            <div className="relative">
+              <select
+                id="month"
+                value={month}
+                onChange={(e) => setMonth(e.target.value)}
+                className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              >
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {i + 1}월
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={14}
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-1 flex-col gap-1.5">
+            <label className="text-sm font-medium" htmlFor="day">
+              일
+            </label>
+            <div className="relative">
+              <select
+                id="day"
+                value={day}
+                onChange={(e) => setDay(e.target.value)}
+                className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              >
+                {Array.from({ length: 31 }, (_, i) => (
+                  <option key={i + 1} value={i + 1}>
+                    {i + 1}일
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={14}
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* 태어난 시간 */}
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium" htmlFor="hour">
+            태어난 시간{' '}
+            <span className="font-normal text-muted-foreground">(선택)</span>
+          </label>
+          <div className="relative">
+            <select
+              id="hour"
+              value={hourValue}
+              onChange={(e) => setHourValue(e.target.value)}
+              className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+            >
+              {HOURS.map(({ label, value }) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown
+              size={14}
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80"
+        >
+          <Sparkles size={16} />
+          AI 사주 분석하기
+        </button>
+      </form>
+    )
+  }
+
+  // ── 결과 / 로딩 ──────────────────────────────────────────────────────────
+  return (
+    <div className="flex flex-col gap-4 px-4 py-5">
+      {/* 헤더 */}
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-bold">사주 분석 결과</h1>
+        <button
+          onClick={handleReset}
+          className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50"
+        >
+          <RotateCcw size={12} />
+          다시 하기
+        </button>
+      </div>
+
+      {/* 사주 4기둥 */}
+      {sajuResult ? (
+        <>
+          <div className="grid grid-cols-4 gap-2">
+            <PillarCard label="年柱" pillar={sajuResult.fourPillars.year} />
+            <PillarCard label="月柱" pillar={sajuResult.fourPillars.month} />
+            <PillarCard label="日柱" pillar={sajuResult.fourPillars.day} />
+            {sajuResult.fourPillars.hour ? (
+              <PillarCard label="時柱" pillar={sajuResult.fourPillars.hour} />
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border px-2 py-3">
+                <span className="text-xs text-muted-foreground">時柱</span>
+                <span className="text-xs text-muted-foreground">미입력</span>
+              </div>
+            )}
+          </div>
+
+          {/* 일간 배지 */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground">일간(日干)</span>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                ELEMENT_BG_LIGHT[sajuResult.dayMaster.element]
+              } ${ELEMENT_TEXT_COLORS[sajuResult.dayMaster.element]}`}
+            >
+              {sajuResult.dayMaster.stem}({sajuResult.dayMaster.stemKorean}) ·{' '}
+              {sajuResult.dayMaster.element} {sajuResult.dayMaster.yinYang}
+            </span>
+          </div>
+
+          {/* 오행 분포 */}
+          <ElementBalance balance={sajuResult.elementBalance} />
+        </>
+      ) : (
+        <div className="flex h-40 items-center justify-center">
+          <Loader2 size={24} className="animate-spin text-indigo-500" />
+        </div>
+      )}
+
+      {/* AI 분석 텍스트 */}
+      <div className="rounded-xl border border-border bg-card p-4">
+        <div className="mb-3 flex items-center gap-2">
+          <Sparkles size={14} className="text-indigo-500" />
+          <span className="text-xs font-semibold text-indigo-600">AI 사주 분석</span>
+          {status === 'streaming' && (
+            <Loader2 size={12} className="ml-auto animate-spin text-muted-foreground" />
+          )}
+        </div>
+
+        {errorMsg ? (
+          <p className="text-sm text-destructive">{errorMsg}</p>
+        ) : aiText ? (
+          <div className="prose prose-sm max-w-none text-sm leading-relaxed text-foreground [&_h2]:mb-1.5 [&_h2]:mt-4 [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:text-indigo-700 [&_p]:text-sm [&_p]:leading-relaxed">
+            {/* 마크다운 헤딩을 간단히 파싱해 렌더링 */}
+            {aiText.split('\n').map((line, i) => {
+              if (line.startsWith('## ')) {
+                return (
+                  <h2 key={i} className="mt-4 first:mt-0 text-sm font-semibold text-indigo-700">
+                    {line.slice(3)}
+                  </h2>
+                )
+              }
+              if (line.trim() === '') return <br key={i} />
+              return (
+                <p key={i} className="text-sm leading-relaxed">
+                  {line}
+                </p>
+              )
+            })}
+            {status === 'streaming' && (
+              <span className="inline-block h-4 w-0.5 animate-pulse bg-indigo-500" />
+            )}
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 size={14} className="animate-spin" />
+            <span>AI가 분석 중이에요...</span>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}

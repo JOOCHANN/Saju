@@ -82,8 +82,8 @@ Saju/
 | Step 2 | 기본 레이아웃 (하단 탭바, 헤더, 홈 뼈대) | ✅ 완료 |
 | Step 3 | DB 설정 (Supabase + Drizzle 스키마 + 마이그레이션) | ✅ 완료 |
 | Step 4 | 인증 (NextAuth.js v5 — Google/Kakao OAuth + 이메일) | ✅ 완료 |
-| Step 5 | 사주 계산 엔진 (순수 TypeScript 간지/사주/오행) | ⬜ 미완료 |
-| Step 6 | AI 연동 (Claude API + SSE 스트리밍 + 결과 UI) | ⬜ 미완료 |
+| Step 5 | 사주 계산 엔진 (순수 TypeScript 간지/사주/오행) | ✅ 완료 |
+| Step 6 | AI 연동 (Claude API + SSE 스트리밍 + 결과 UI) | ✅ 완료 |
 | Step 7 | 오늘의 운세 (12간지 UI + Redis 캐싱 + 운세 카드) | ⬜ 미완료 |
 | Step 8 | 마이페이지 / 보관함 (분석 저장·조회, 계정 설정) | ⬜ 미완료 |
 
@@ -177,21 +177,49 @@ pnpm db:migrate    # Supabase에 스키마 적용
 
 ---
 
-### Step 5 — 사주 계산 엔진 ⬜
+### Step 5 — 사주 계산 엔진 ✅
 
-**작업 예정:**
-- 순수 TypeScript 사주 엔진 (`src/lib/saju/`)
-- 간지(干支), 사주팔자, 오행(五行), 십신(十神) 계산 로직
-- 서버/클라이언트 모두 사용 가능한 Edge 호환 모듈
+**완료 내용:**
+- `src/lib/saju/constants.ts` — 천간(10), 지지(12), 오행, 십신, 절기(SOLAR_TERM_STARTS) 상수
+- `src/lib/saju/calculator.ts` — 핵심 계산 함수:
+  - `getYearGanzhi()` — 입춘(2/4) 기준 연주 계산
+  - `getMonthBranchIndex()` / `getMonthStemIndex()` — 절기 기준 월주 (오호둔법)
+  - `getDayGanzhi()` — JDN 기준일(2000/1/1=庚午) 차이로 일주 계산
+  - `getHourBranchIndex()` / `getHourStemIndex()` — 시주 (오자둔법)
+  - `getTenGod()` — 일간 기준 십신 (비견·겁재·식신·상관·편재·정재·편관·정관·편인·정인)
+  - `countElements()` — 8자 오행 분포 집계
+- `src/lib/saju/index.ts` — Public API: `calculateSaju(input) → SajuResult`
+  - 타입: `SajuInput`, `GanzhiInfo`, `FourPillars`, `SajuResult`
+  - `summary` 필드: AI 프롬프트 바로 사용 가능한 텍스트 요약
+
+**주요 기술 결정:**
+- 외부 라이브러리 0개 — Edge Runtime, Node.js, 브라우저 어디서나 동일 동작
+- JDN(율리우스 적일수) 기반 일주 계산 → 역사적 날짜 포함 정확성
+- 절기 근사값(±1일) 사용 — 정확한 절기 계산은 Phase 2에서 천문 테이블로 교체 예정
+- `summary` 필드로 Claude API 프롬프트에 사주 정보를 바로 삽입 가능
 
 ---
 
-### Step 6 — AI 연동 ⬜
+### Step 6 — AI 연동 ✅
 
-**작업 예정:**
-- Anthropic Claude API 연동 (`src/lib/ai/`)
-- SSE 스트리밍 응답 처리
-- 사주 분석 결과 UI 컴포넌트
+**완료 내용:**
+- `src/lib/ai/prompts.ts` — Claude API 프롬프트 빌더 (`SAJU_SYSTEM_PROMPT`, `buildSajuUserMessage()`)
+- `src/app/api/saju/analyze/route.ts` — SSE 스트리밍 API (Edge Runtime)
+  - Zod 입력 검증 → 사주 계산 → Claude API 스트리밍
+  - 첫 이벤트: `{type:'saju', payload: SajuResult}` (클라이언트 즉시 렌더링)
+  - 이후 이벤트: `{type:'text', text: chunk}` (AI 텍스트 스트리밍)
+  - 모델: `claude-sonnet-4-6`
+- `src/components/saju/SajuClient.tsx` — 폼 + 결과 통합 클라이언트 컴포넌트
+  - 입력: 성별 토글, 생년 입력, 월·일 select, 시진(時辰) select (12시간대)
+  - 결과: 사주 4기둥 카드 (오행 색상 코딩), 오행 분포 바 차트, AI 분석 텍스트
+  - 스트리밍 커서 애니메이션, 마크다운 ## 헤딩 파싱 렌더링
+- `src/app/saju/page.tsx` — `<SajuClient />` 래퍼
+
+**주요 기술 결정:**
+- API 라우트: `runtime = 'edge'` — Anthropic SDK는 fetch 기반, Node.js TCP 불필요
+- 클라이언트 사이드 사주 계산: API 응답 전에 4기둥 즉시 렌더링 (UX 개선)
+- SSE 첫 이벤트로 `SajuResult` 전송 → 클라이언트가 사주 계산 결과도 서버 검증 가능
+- ReadableStream + TextDecoder로 순수 SSE 파싱 (EventSource 미사용)
 
 ---
 
