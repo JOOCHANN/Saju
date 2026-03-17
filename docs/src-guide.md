@@ -261,13 +261,20 @@ export const JIJI_OHAENG: Record<Jiji, OhaengElement> = { ... }
 
 ---
 
-## `prisma/schema.prisma` — DB 스키마
+## `src/lib/db/` — DB 스키마 (Drizzle ORM)
 
 → [07-database-schema.md](07-database-schema.md) 참조
 
+```
+src/lib/db/
+  ├── schema.ts      # Drizzle 테이블/enum 정의
+  ├── index.ts       # Supabase HTTP 드라이버로 Drizzle 클라이언트 생성
+  └── migrations/    # 자동 생성된 마이그레이션 파일
+```
+
 스키마 변경 시:
 ```bash
-npx prisma migrate dev --name describe_change  # 개발
-npx prisma migrate deploy                       # 프로덕션
-npx prisma generate                             # 클라이언트 재생성
+pnpm drizzle-kit generate   # 마이그레이션 파일 생성
+pnpm drizzle-kit migrate    # Supabase DB에 적용
+pnpm drizzle-kit studio     # DB GUI (로컬 확인용)
 ```

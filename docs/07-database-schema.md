@@ -1,5 +1,9 @@
 # 07. 데이터베이스 스키마 (Database Schema)
 
+> **ORM 변경**: 기존 계획의 Prisma → **Drizzle ORM**으로 변경
+> Cloudflare Workers(Edge Runtime)에서 Prisma는 동작하지 않음.
+> Drizzle은 Edge 완전 호환이며, Supabase JS 클라이언트와 함께 사용.
+
 ## ERD 개요
 
 ```
@@ -14,10 +18,29 @@ DailyFortune (독립 테이블, 캐시 용도)
 
 ---
 
-## Prisma Schema
+## Drizzle Schema
+
+Drizzle은 `src/lib/db/schema.ts`에 정의합니다. (Prisma처럼 별도 파일 불필요)
+
+```typescript
+// src/lib/db/schema.ts
+import { pgTable, text, timestamp, boolean, integer, json, pgEnum, uniqueIndex, index } from 'drizzle-orm/pg-core'
+import { createId } from '@paralleldrive/cuid2'
+
+// Enums
+export const genderEnum = pgEnum('gender', ['MALE', 'FEMALE'])
+export const readingTypeEnum = pgEnum('reading_type', ['SAJU_BASIC', 'COMPATIBILITY', 'DAEUN', 'ANNUAL', 'TAEGIL'])
+export const paymentStatusEnum = pgEnum('payment_status', ['PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'])
+```
+
+---
+
+## (참고용) 기존 Prisma Schema 구조
+
+아래는 테이블 구조 참고용입니다. 실제 구현 시 Drizzle로 작성합니다.
 
 ```prisma
-// prisma/schema.prisma
+// [참고용] prisma/schema.prisma
 
 generator client {
   provider = "prisma-client-js"

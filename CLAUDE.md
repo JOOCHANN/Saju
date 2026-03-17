@@ -18,7 +18,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Auth**: NextAuth.js v5
 - **AI**: Anthropic Claude API
 - **Payment**: Toss Payments (Phase 2)
-- **Deploy**: Vercel
+- **Deploy**: Cloudflare Pages (`@cloudflare/next-on-pages` 어댑터)
+- **ORM**: Drizzle ORM (Prisma → Edge Runtime 호환으로 변경)
 
 ## Repository
 
@@ -38,6 +39,7 @@ pnpm db:generate      # Prisma 클라이언트 생성
 
 ## Key Conventions
 
+- 모든 API Route에 `export const runtime = 'edge'` 선언 (Cloudflare Workers 필수)
 - 모든 API 입력은 Zod로 검증
 - 민감 데이터 (생년월일 등)는 AES-256-GCM 암호화 후 저장
 - API 응답 형식: `{ data, error, meta }` 통일

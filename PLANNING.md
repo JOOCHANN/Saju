@@ -24,6 +24,7 @@
 | [08-api-design.md](docs/08-api-design.md) | API 엔드포인트 설계 |
 | [09-security-privacy.md](docs/09-security-privacy.md) | 보안 및 개인정보 처리 설계 |
 | [10-roadmap.md](docs/10-roadmap.md) | 개발 로드맵 및 우선순위 |
+| [11-cloudflare-setup.md](docs/11-cloudflare-setup.md) | Cloudflare Pages 배포 설정 가이드 |
 
 ---
 
