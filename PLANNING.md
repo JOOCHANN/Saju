@@ -80,7 +80,7 @@ Saju/
 |------|------|------|
 | Step 1 | 프로젝트 초기화 | ✅ 완료 |
 | Step 2 | 기본 레이아웃 (하단 탭바, 헤더, 홈 뼈대) | ✅ 완료 |
-| Step 3 | DB 설정 (Supabase + Drizzle 스키마 + 마이그레이션) | ⬜ 미완료 |
+| Step 3 | DB 설정 (Supabase + Drizzle 스키마 + 마이그레이션) | ✅ 완료 |
 | Step 4 | 인증 (NextAuth.js v5 — Google/Kakao OAuth + 이메일) | ⬜ 미완료 |
 | Step 5 | 사주 계산 엔진 (순수 TypeScript 간지/사주/오행) | ⬜ 미완료 |
 | Step 6 | AI 연동 (Claude API + SSE 스트리밍 + 결과 UI) | ⬜ 미완료 |
@@ -124,12 +124,30 @@ Saju/
 
 ---
 
-### Step 3 — DB 설정 ⬜
+### Step 3 — DB 설정 ✅
 
-**작업 예정:**
-- Supabase 프로젝트 연결 (`@supabase/supabase-js`)
-- `src/lib/db/` — Drizzle ORM 설정 및 스키마 정의
-- `drizzle-kit generate` + `drizzle-kit migrate` 실행
+**완료 내용:**
+- `drizzle.config.ts` — drizzle-kit 설정 (`DATABASE_URL_UNPOOLED` 마이그레이션용)
+- `src/lib/db/schema.ts` — 전체 Drizzle 스키마 정의
+  - Auth.js 호환 테이블: `users`, `accounts`, `sessions`, `verification_tokens`
+  - 앱 테이블: `user_profiles`, `readings`, `daily_fortunes`, `payments`
+  - Enums: `gender`, `reading_type`, `payment_status`
+- `src/lib/db/index.ts` — Drizzle 클라이언트 (postgres driver, `prepare: false`)
+- `src/lib/crypto.ts` — AES-256-GCM 암호화 (Web Crypto API, Edge 완전 호환)
+- `.env.example` / `.dev.vars.example` — `DATABASE_URL`, `DATABASE_URL_UNPOOLED` 추가
+- `postgres` npm 패키지 설치
+
+**실제 DB 마이그레이션 방법 (Supabase 프로젝트 생성 후):**
+```bash
+# .env.local 에 DATABASE_URL_UNPOOLED 설정 후:
+pnpm db:generate   # 마이그레이션 파일 생성
+pnpm db:migrate    # Supabase에 스키마 적용
+```
+
+**주요 기술 결정:**
+- `postgres` 드라이버 + `prepare: false` → Supabase pgBouncer Transaction 모드 호환
+- `crypto.subtle` (Web Crypto API) → Cloudflare Workers Edge Runtime 완전 호환
+- Auth.js Drizzle 어댑터 호환 스키마 미리 정의 (Step 4 auth에서 바로 사용)
 
 ---
 
