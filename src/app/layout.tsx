@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
-import Header from '@/components/layout/Header'
-import BottomTabBar from '@/components/layout/BottomTabBar'
+import ShellWrapper from '@/components/layout/ShellWrapper'
 
 export const metadata: Metadata = {
   title: {
@@ -33,11 +32,7 @@ export default function RootLayout({
   return (
     <html lang="ko">
       <body className="bg-background antialiased">
-        <div className="mobile-container relative min-h-screen">
-          <Header />
-          <main className="pb-16">{children}</main>
-          <BottomTabBar />
-        </div>
+        <ShellWrapper>{children}</ShellWrapper>
       </body>
     </html>
   )

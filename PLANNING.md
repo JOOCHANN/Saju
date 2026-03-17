@@ -81,7 +81,7 @@ Saju/
 | Step 1 | 프로젝트 초기화 | ✅ 완료 |
 | Step 2 | 기본 레이아웃 (하단 탭바, 헤더, 홈 뼈대) | ✅ 완료 |
 | Step 3 | DB 설정 (Supabase + Drizzle 스키마 + 마이그레이션) | ✅ 완료 |
-| Step 4 | 인증 (NextAuth.js v5 — Google/Kakao OAuth + 이메일) | ⬜ 미완료 |
+| Step 4 | 인증 (NextAuth.js v5 — Google/Kakao OAuth + 이메일) | ✅ 완료 |
 | Step 5 | 사주 계산 엔진 (순수 TypeScript 간지/사주/오행) | ⬜ 미완료 |
 | Step 6 | AI 연동 (Claude API + SSE 스트리밍 + 결과 UI) | ⬜ 미완료 |
 | Step 7 | 오늘의 운세 (12간지 UI + Redis 캐싱 + 운세 카드) | ⬜ 미완료 |
@@ -151,13 +151,29 @@ pnpm db:migrate    # Supabase에 스키마 적용
 
 ---
 
-### Step 4 — 인증 ⬜
+### Step 4 — 인증 ✅
 
-**작업 예정:**
-- NextAuth.js v5 (Auth.js) 설정
-- Google OAuth, Kakao OAuth 프로바이더
-- 이메일 로그인 (Resend)
-- `src/auth.ts`, `src/app/api/auth/[...nextauth]/route.ts`
+**완료 내용:**
+- `src/auth.ts` — NextAuth v5 설정 (JWT 전략, Kakao/Google/Resend 프로바이더, DrizzleAdapter)
+- `src/app/api/auth/[...nextauth]/route.ts` — Auth 핸들러 (runtime: nodejs, dynamic: force-dynamic)
+- `src/middleware.ts` — `/storage` 등 보호 라우트 → 미로그인 시 `/login` 리다이렉트
+- `src/app/login/page.tsx` — 로그인 UI (카카오 노란 버튼 최상단, Google, 이메일 매직링크)
+- `src/components/auth/EmailLoginForm.tsx` — 이메일 매직링크 폼 (client component)
+- `src/components/layout/ShellWrapper.tsx` — `/login` 등 auth 페이지에서 탭바/헤더 숨김
+- `src/types/auth.d.ts` — session.user.id 타입 확장
+- `src/app/mypage/page.tsx` — 로그인 상태 반영 (프로필, 로그아웃 버튼)
+- CLAUDE.md 업데이트 — runtime 규칙 명확화
+
+**주요 기술 결정:**
+- JWT 전략: Edge Runtime에서 DB 없이 세션 검증 가능
+- Auth API 라우트: `runtime = 'nodejs'` (postgres가 Node.js TCP 필요), `dynamic = 'force-dynamic'`
+- DB 초기화: 빈 URL로 초기화 후 실제 쿼리 시 연결 (빌드 타임 오류 방지)
+- `ShellWrapper`: `/login`, `/signup` 경로에서 네비게이션 UI 숨김
+
+**실제 OAuth 연동 방법 (배포 전):**
+- Kakao Developers: 앱 생성 → REST API 키 → `AUTH_KAKAO_ID/SECRET`
+- Google Cloud Console: OAuth 2.0 클라이언트 → `AUTH_GOOGLE_ID/SECRET`
+- `.dev.vars`에 모든 키 추가 후 `pnpm dev`
 
 ---
 
