@@ -84,7 +84,7 @@ Saju/
 | Step 4 | 인증 (NextAuth.js v5 — Google/Kakao OAuth + 이메일) | ✅ 완료 |
 | Step 5 | 사주 계산 엔진 (순수 TypeScript 간지/사주/오행) | ✅ 완료 |
 | Step 6 | AI 연동 (Claude API + SSE 스트리밍 + 결과 UI) | ✅ 완료 |
-| Step 7 | 오늘의 운세 (12간지 UI + Redis 캐싱 + 운세 카드) | ⬜ 미완료 |
+| Step 7 | 오늘의 운세 (12간지 UI + Redis 캐싱 + 운세 카드) | ✅ 완료 |
 | Step 8 | 마이페이지 / 보관함 (분석 저장·조회, 계정 설정) | ⬜ 미완료 |
 
 ---
@@ -223,12 +223,24 @@ pnpm db:migrate    # Supabase에 스키마 적용
 
 ---
 
-### Step 7 — 오늘의 운세 ⬜
+### Step 7 — 오늘의 운세 ✅
 
-**작업 예정:**
-- 12간지 띠별 운세 UI
-- Upstash Redis 캐싱 (일별 갱신)
-- 운세 카드 컴포넌트
+**완료 내용:**
+- `src/lib/cache/redis.ts` — Upstash Redis 클라이언트 (HTTP REST, Edge 호환), `getTodayKST()`, `secondsUntilMidnightKST()` 헬퍼
+- `src/lib/fortune/zodiac.ts` — 12간지 상수 (이름·한자·이모지·기준연도), `getZodiacByYear()`, `getRecentYears()` 유틸
+- `src/app/api/fortune/daily/route.ts` — GET API (Edge Runtime)
+  - Redis 캐시 확인 → 히트 시 즉시 반환
+  - 캐시 미스 → Claude Haiku로 JSON 운세 생성 → Redis 저장 (KST 자정 TTL)
+  - `DailyFortune` 타입: overall/love/money/health 텍스트 + 점수(1-5) + 행운색/번호
+- `src/components/fortune/FortuneClient.tsx` — 클라이언트 컴포넌트
+  - 띠 선택 3×4 그리드 (이모지 + 최근 3개 출생연도 표시)
+  - 운세 카드: 그라디언트 헤더, 4개 카테고리 점수 바, 운세 텍스트, 행운 배지
+- `src/app/fortune/page.tsx` — `<FortuneClient />` 래퍼
+
+**주요 기술 결정:**
+- Claude Haiku 사용 (운세 생성은 짧은 응답 → 빠르고 저렴)
+- Redis 미설정 시 null 클라이언트로 graceful fallback (캐싱 없이 매번 AI 생성)
+- KST 자정 TTL: 같은 날 같은 띠는 동일 운세 제공 (일관성)
 
 ---
 
