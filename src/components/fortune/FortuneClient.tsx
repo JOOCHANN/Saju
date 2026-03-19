@@ -116,22 +116,14 @@ function FortuneCard({ fortune }: { fortune: DailyFortune }) {
         <p className="text-sm font-bold">📊 세부 운세</p>
         {SCORE_LABELS.map(({ key, label, emoji }) => (
           <div key={key} className="rounded-xl border border-border bg-card p-4">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <span className="text-base">{emoji}</span>
-                <span className="text-sm font-semibold">{label}</span>
-              </div>
-              <span className="text-sm font-bold tabular-nums">{fortune.score[key]}점</span>
+            <div className="flex items-center gap-1.5 mb-2">
+              <span className="text-base">{emoji}</span>
+              <span className="text-sm font-semibold">{label}</span>
             </div>
             <ScoreBar score={fortune.score[key]} />
             <p className="text-sm leading-relaxed text-muted-foreground mt-3">
               {fortune[key as keyof Pick<DailyFortune, 'overall' | 'love' | 'money' | 'health'>]}
             </p>
-            {fortune.reason[key as keyof typeof fortune.reason] && (
-              <p className="mt-2 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-                💬 {fortune.reason[key as keyof typeof fortune.reason]}
-              </p>
-            )}
           </div>
         ))}
       </div>
