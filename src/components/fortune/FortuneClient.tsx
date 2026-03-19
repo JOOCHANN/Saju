@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowLeft, ChevronDown, Loader2, RefreshCw, Sparkles, X } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Loader2, RefreshCw, Sparkles } from 'lucide-react'
 import { ZODIACS, getRecentYears, getZodiacByYear } from '@/lib/fortune/zodiac'
 import type { ZodiacData } from '@/lib/fortune/zodiac'
 import type { DailyFortune } from '@/app/api/fortune/daily/route'
@@ -189,83 +189,6 @@ function getAllYearsForZodiac(zodiac: ZodiacData): number[] {
   return years.reverse()
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// 바텀시트 컴포넌트
-// ────────────────────────────────────────────────────────────────────────────
-
-function BottomSheet({
-  title,
-  items,
-  selected,
-  onSelect,
-  onClose,
-  cols = 4,
-}: {
-  title: string
-  items: number[]
-  selected: number | null
-  onSelect: (v: number | null) => void
-  onClose: () => void
-  cols?: number
-}) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-end" onClick={onClose}>
-      <div
-        className="absolute inset-0 bg-black/40"
-        aria-hidden="true"
-      />
-      <div
-        className="relative w-full rounded-t-2xl bg-background pt-4 shadow-xl"
-        style={{ maxHeight: '70vh' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* 핸들 */}
-        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-muted" />
-        {/* 헤더 */}
-        <div className="flex items-center justify-between px-5 pb-4">
-          <p className="font-semibold">{title}</p>
-          <button type="button" onClick={onClose} className="rounded-full p-1 hover:bg-muted/60">
-            <X size={18} />
-          </button>
-        </div>
-        {/* 스크롤 영역 */}
-        <div className="overflow-y-auto pb-8" style={{ maxHeight: 'calc(70vh - 80px)' }}>
-          {/* 선택 안함 */}
-          <div className="px-4 pb-3">
-            <button
-              type="button"
-              onClick={() => { onSelect(null); onClose() }}
-              className={`w-full rounded-xl border py-2.5 text-sm font-medium transition-colors ${
-                selected === null
-                  ? 'border-amber-400 bg-amber-50 text-amber-700'
-                  : 'border-border text-muted-foreground'
-              }`}
-            >
-              선택 안함
-            </button>
-          </div>
-          {/* 숫자 그리드 */}
-          <div className="grid px-4 gap-2" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
-            {items.map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => { onSelect(item); onClose() }}
-                className={`rounded-xl border py-2.5 text-sm font-medium transition-colors ${
-                  selected === item
-                    ? 'border-amber-400 bg-amber-400 text-white'
-                    : 'border-border bg-card text-foreground hover:bg-muted/50'
-                }`}
-              >
-                {item}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 // ────────────────────────────────────────────────────────────────────────────
 // 메인 컴포넌트
@@ -284,7 +207,6 @@ export default function FortuneClient() {
   const [birthYear, setBirthYear] = useState<number | null>(null)
   const [birthMonth, setBirthMonth] = useState<number | null>(null)
   const [birthDay, setBirthDay] = useState<number | null>(null)
-  const [bottomSheet, setBottomSheet] = useState<'month' | 'day' | null>(null)
 
   const ERROR_MESSAGES: Record<string, string> = {
     AI_KEY_MISSING: 'AI 서비스가 아직 설정되지 않았어요.',
@@ -421,30 +343,42 @@ export default function FortuneClient() {
           </div>
         </div>
 
-        {/* 월·일 — 탭하면 바텀시트 */}
+        {/* 월·일 — select 드롭다운 (선택 사항) */}
         <div className="flex gap-3">
           {/* 월 */}
-          <button
-            type="button"
-            onClick={() => setBottomSheet('month')}
-            className="flex flex-1 items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-sm"
-          >
-            <span className="text-muted-foreground text-xs font-medium">월 (선택 사항)</span>
-            <span className={`font-semibold ${birthMonth ? 'text-amber-500' : 'text-muted-foreground'}`}>
-              {birthMonth ? `${birthMonth}월` : '선택 안함'}
-            </span>
-          </button>
+          <div className="relative flex-1">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">월 (선택 사항)</label>
+            <div className="relative">
+              <select
+                value={birthMonth ?? ''}
+                onChange={(e) => setBirthMonth(e.target.value ? Number(e.target.value) : null)}
+                className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 ring-offset-background"
+              >
+                <option value="">선택 안함</option>
+                {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                  <option key={m} value={m}>{m}월</option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            </div>
+          </div>
           {/* 일 */}
-          <button
-            type="button"
-            onClick={() => setBottomSheet('day')}
-            className="flex flex-1 items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-sm"
-          >
-            <span className="text-muted-foreground text-xs font-medium">일 (선택 사항)</span>
-            <span className={`font-semibold ${birthDay ? 'text-amber-500' : 'text-muted-foreground'}`}>
-              {birthDay ? `${birthDay}일` : '선택 안함'}
-            </span>
-          </button>
+          <div className="relative flex-1">
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">일 (선택 사항)</label>
+            <div className="relative">
+              <select
+                value={birthDay ?? ''}
+                onChange={(e) => setBirthDay(e.target.value ? Number(e.target.value) : null)}
+                className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 ring-offset-background"
+              >
+                <option value="">선택 안함</option>
+                {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                  <option key={d} value={d}>{d}일</option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            </div>
+          </div>
         </div>
 
         <button
@@ -457,27 +391,6 @@ export default function FortuneClient() {
           나만의 오늘 운세 보기
         </button>
 
-        {/* 바텀시트 */}
-        {bottomSheet === 'month' && (
-          <BottomSheet
-            title="월 선택"
-            items={Array.from({ length: 12 }, (_, i) => i + 1)}
-            selected={birthMonth}
-            onSelect={setBirthMonth}
-            onClose={() => setBottomSheet(null)}
-            cols={4}
-          />
-        )}
-        {bottomSheet === 'day' && (
-          <BottomSheet
-            title="일 선택"
-            items={Array.from({ length: 31 }, (_, i) => i + 1)}
-            selected={birthDay}
-            onSelect={setBirthDay}
-            onClose={() => setBottomSheet(null)}
-            cols={7}
-          />
-        )}
       </div>
     )
   }

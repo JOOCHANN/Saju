@@ -197,25 +197,33 @@ export async function GET(request: Request) {
   let sajuContext: string | undefined
   let seed: number
 
-  if (year && month && day) {
-    // 생년월일 모드 — 시드: 날짜 + 생년월일 고유값
+  if (year) {
+    // 연도(+월+일) 모드
     resolvedZodiac = getZodiacByYear(year)
-    cacheKey = `fortune:v2:${date}:birth:${year}-${month}-${day}`
-    seed = makeSeed(date, year * 10000 + month * 100 + day)
 
-    try {
-      const saju = calculateSaju({ year, month, day, gender: 'male' })
-      const elemStr = Object.entries(saju.elementBalance)
-        .filter(([, v]) => v > 0)
-        .map(([k, v]) => `${k} ${v}개`)
-        .join(', ')
-      const yp = saju.fourPillars.year
-      sajuContext = `출생연도: ${year}년 (${yp.stem}${yp.branch} / ${yp.stemKorean}${yp.branchKorean}년생)
+    if (month && day) {
+      // 생년월일 완전 입력 — 사주 기반 개인화
+      cacheKey = `fortune:v2:${date}:birth:${year}-${month}-${day}`
+      seed = makeSeed(date, year * 10000 + month * 100 + day)
+
+      try {
+        const saju = calculateSaju({ year, month, day, gender: 'male' })
+        const elemStr = Object.entries(saju.elementBalance)
+          .filter(([, v]) => v > 0)
+          .map(([k, v]) => `${k} ${v}개`)
+          .join(', ')
+        const yp = saju.fourPillars.year
+        sajuContext = `출생연도: ${year}년 (${yp.stem}${yp.branch} / ${yp.stemKorean}${yp.branchKorean}년생)
 일간(日干): ${saju.dayMaster.stemKorean}(${saju.dayMaster.stem}) — ${saju.dayMaster.element} ${saju.dayMaster.yinYang}
 오행 분포: ${elemStr}
 일주(日柱): ${saju.fourPillars.day.stem}${saju.fourPillars.day.branch}(${saju.fourPillars.day.stemKorean}${saju.fourPillars.day.branchKorean})`
-    } catch (err) {
-      console.warn('사주 계산 실패, zodiac만으로 진행', err)
+      } catch (err) {
+        console.warn('사주 계산 실패, zodiac만으로 진행', err)
+      }
+    } else {
+      // 연도만 입력 — 띠 기반 (연도로 시드 차별화)
+      cacheKey = `fortune:v2:${date}:birth:${year}`
+      seed = makeSeed(date, year)
     }
   } else if (zodiac && isValidZodiac(zodiac)) {
     resolvedZodiac = zodiac
