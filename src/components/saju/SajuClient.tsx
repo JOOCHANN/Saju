@@ -70,12 +70,51 @@ const SIP_IUN_DESC: Record<string, string> = {
   태: '가능성의 씨앗 기운 — 아직 드러나지 않은 잠재력이 있어요',
   양: '천천히 자라나는 기운 — 서두르지 않고 꾸준히 성장해요',
 }
-const DAEWOON_DESC: Record<string, string> = {
-  목: '성장과 도전의 시기예요. 새로운 일을 시작하거나 배움을 넓히기 좋아요.',
-  화: '활발하고 빛나는 시기예요. 주목받고 인정받기 쉬운 때예요.',
-  토: '안정과 기반을 다지는 시기예요. 꾸준함이 가장 큰 힘이에요.',
-  금: '결실을 맺는 시기예요. 그동안의 노력이 결과로 이어져요.',
-  수: '변화와 지혜의 시기예요. 유연하게 적응하며 새 방향을 찾아요.',
+// 천간별 대운 설명 (10개 — 같은 오행이라도 음양에 따라 다름)
+const STEM_DAEWOON_DESC: Record<string, string> = {
+  갑: '힘차게 뻗어나가는 나무처럼 새 도전을 시작하기 좋아요. 강한 추진력으로 목표를 향해 나아가는 시기예요.',
+  을: '유연하게 구부러지는 풀처럼 적응력과 창의성이 빛나요. 주변과 조화를 이루며 조용히 성장하는 시기예요.',
+  병: '태양처럼 밝고 강렬하게 빛나는 시기예요. 주목받고 인기를 얻기 쉬우며 사회적으로 활발해져요.',
+  정: '촛불처럼 따뜻하고 섬세한 빛을 발해요. 내면의 열정을 키우고 깊은 인간관계가 형성되는 시기예요.',
+  무: '높은 산처럼 든든하게 기반을 다지는 시기예요. 신뢰와 안정을 쌓으며 중심을 잡아가는 때예요.',
+  기: '비옥한 흙처럼 조용히 준비하고 키워나가는 시기예요. 서두르지 않고 내실을 다지는 게 중요해요.',
+  경: '날카로운 도끼처럼 결단하고 변화를 이끄는 시기예요. 과감한 결정이 필요하고 새 전환점이 찾아와요.',
+  신: '보석처럼 정제되고 빛나는 시기예요. 섬세함과 집중력이 돋보이며 자기 관리가 빛을 발해요.',
+  임: '큰 강처럼 힘차게 흐르는 시기예요. 변화의 물결을 타며 새 기회가 열리고 시야가 넓어져요.',
+  계: '조용히 스며드는 빗물처럼 깊은 성찰과 지혜가 쌓이는 시기예요. 내면을 돌보고 직관을 키워가요.',
+}
+
+// 오행 개수 기반 개인화 설명
+function getElemStrengthDesc(elem: string, count: number, total: number): string {
+  const ratio = total > 0 ? count / total : 0
+  if (count === 0) {
+    const m: Record<string, string> = {
+      목: '목(나무) 기운이 없어요. 유연성·추진력이 약할 수 있으니 의도적으로 성장 마인드를 키워보세요.',
+      화: '화(불) 기운이 없어요. 열정·표현력이 약할 수 있으니 자신감을 키우는 활동이 도움돼요.',
+      토: '토(흙) 기운이 없어요. 안정감·신뢰감이 약할 수 있으니 꾸준함을 의식적으로 실천해보세요.',
+      금: '금(금속) 기운이 없어요. 결단력·정확성이 약할 수 있으니 명확한 목표 설정이 중요해요.',
+      수: '수(물) 기운이 없어요. 지혜·감수성이 약할 수 있으니 직관을 키우는 활동을 해보세요.',
+    }
+    return m[elem] ?? ''
+  }
+  if (ratio >= 0.375) {
+    const m: Record<string, string> = {
+      목: `목(나무) 기운이 강해요(${count}개). 창의성과 도전 정신이 넘치지만, 지나치면 고집스럽거나 참을성이 부족할 수 있어요.`,
+      화: `화(불) 기운이 강해요(${count}개). 열정과 표현력이 넘치지만, 지나치면 급하거나 감정 기복이 커질 수 있어요.`,
+      토: `토(흙) 기운이 강해요(${count}개). 안정감과 신뢰감이 뛰어나지만, 지나치면 변화에 너무 느리게 반응할 수 있어요.`,
+      금: `금(금속) 기운이 강해요(${count}개). 결단력과 의리가 강하지만, 지나치면 고집이 세거나 날카로울 수 있어요.`,
+      수: `수(물) 기운이 강해요(${count}개). 지혜와 감수성이 풍부하지만, 지나치면 걱정이 많거나 우유부단해질 수 있어요.`,
+    }
+    return m[elem] ?? ''
+  }
+  const m: Record<string, string> = {
+    목: `목(나무) 기운이 ${count}개예요. 성장·창의성이 균형 잡혀 있어요. 도전을 즐기면서도 무리하지 않는 편이에요.`,
+    화: `화(불) 기운이 ${count}개예요. 열정과 표현력이 균형 잡혀 있어요. 적당히 활기차고 표현을 잘 하는 편이에요.`,
+    토: `토(흙) 기운이 ${count}개예요. 안정감이 균형 잡혀 있어요. 꾸준함과 변화 사이에서 잘 조율하는 편이에요.`,
+    금: `금(금속) 기운이 ${count}개예요. 결단력이 균형 잡혀 있어요. 필요할 때 과감하게 결정하는 힘이 있어요.`,
+    수: `수(물) 기운이 ${count}개예요. 지혜와 감수성이 균형 잡혀 있어요. 상황을 잘 파악하고 유연하게 대처해요.`,
+  }
+  return m[elem] ?? ''
 }
 
 type Status = 'idle' | 'loading' | 'streaming' | 'done' | 'error'
@@ -167,7 +206,7 @@ function ElementBalanceSection({ balance }: { balance: SajuResult['elementBalanc
     <>
       {ELEMENT_NAMES.map((e) => (
         <Chip key={e} className={`${ELEM_BG[e]} ${ELEM_TEXT[e]}`}>
-          {ELEM_EMOJI[e]} {e} {balance[e]}
+          {ELEM_EMOJI[e]} {e} {balance[e]}/{total}
         </Chip>
       ))}
     </>
@@ -185,15 +224,15 @@ function ElementBalanceSection({ balance }: { balance: SajuResult['elementBalanc
                 <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                   <div className={`h-full rounded-full transition-all duration-700 ${ELEM_BAR[e]}`} style={{ width: `${pct}%` }} />
                 </div>
-                <span className="text-xs text-muted-foreground w-4 text-right">{balance[e]}</span>
+                <span className="text-xs text-muted-foreground w-8 text-right">{balance[e]}/{total}</span>
               </div>
-              <p className="text-[11px] text-muted-foreground pl-10">{ELEM_MEANING[e]}</p>
+              <p className="text-[11px] text-muted-foreground pl-10 mb-0.5">{ELEM_MEANING[e]}</p>
+              <p className="text-[11px] leading-relaxed pl-10" style={{ color: balance[e] === 0 ? '#9ca3af' : undefined }}>
+                {getElemStrengthDesc(e, balance[e], total)}
+              </p>
             </div>
           )
         })}
-        <div className="rounded-xl bg-indigo-50 p-3 text-[11px] leading-relaxed text-indigo-800 mt-2">
-          💡 기운이 2개 이상이면 그 성질이 강하게 나타나고, 0개이면 그 영역이 약할 수 있어요. 균형 잡힌 사주일수록 안정적이에요.
-        </div>
       </div>
     </CollapsibleCard>
   )
@@ -314,15 +353,25 @@ function GongMangSection({ gongMang }: { gongMang: SajuResult['gongMang'] }) {
   )
 }
 
-function DaewoonSection({ daewoon }: { daewoon: SajuResult['daewoon'] }) {
+function DaewoonSection({ daewoon, birthYear }: { daewoon: SajuResult['daewoon']; birthYear: number }) {
+  const currentYear = new Date().getFullYear()
+  const currentAge = currentYear - birthYear
   const items = daewoon.slice(0, 6)
+
+  // 현재 해당하는 대운 인덱스 찾기
+  const currentIdx = items.reduce((found, dw, i) => {
+    const nextStart = items[i + 1]?.startAge ?? Infinity
+    return currentAge >= dw.startAge && currentAge < nextStart ? i : found
+  }, -1)
+
   const chips = (
     <>
       {items.slice(0, 4).map((dw, i) => {
         const e = ELEMENT_NAMES[STEMS[dw.stemIndex].element]
+        const isCurrent = i === currentIdx
         return (
-          <Chip key={i} className={`${ELEM_BG[e]} ${ELEM_TEXT[e]}`}>
-            {dw.startAge}세 {STEMS[dw.stemIndex].korean}{BRANCHES[dw.branchIndex].korean}
+          <Chip key={i} className={isCurrent ? 'bg-indigo-600 text-white font-bold' : `${ELEM_BG[e]} ${ELEM_TEXT[e]}`}>
+            {isCurrent ? '▶ ' : ''}{dw.startAge}세 {STEMS[dw.stemIndex].korean}{BRANCHES[dw.branchIndex].korean}
           </Chip>
         )
       })}
@@ -332,27 +381,39 @@ function DaewoonSection({ daewoon }: { daewoon: SajuResult['daewoon'] }) {
   return (
     <CollapsibleCard icon="🌊" title="대운 (大運)" titleSub="10년 단위로 바뀌는 큰 운의 흐름" chips={chips}>
       <div className="rounded-xl bg-blue-50 p-3 text-[11px] leading-relaxed text-blue-800 mb-3">
-        💡 대운은 10년마다 바뀌는 큰 운이에요. 어떤 오행 기운이 흐르는지에 따라 그 시기에 집중해야 할 것들이 달라져요.
+        💡 대운은 10년마다 바뀌는 큰 운이에요. 천간(위 글자)의 기운에 따라 그 시기에 집중해야 할 것들이 달라져요.
+        {currentIdx >= 0 && (
+          <span className="ml-1 font-semibold">지금은 <span className="text-indigo-700">{items[currentIdx].startAge}세 대운</span>이에요.</span>
+        )}
       </div>
       <div className="space-y-2">
         {items.map((dw, i) => {
           const stemE = ELEMENT_NAMES[STEMS[dw.stemIndex].element]
           const branchE = ELEMENT_NAMES[BRANCHES[dw.branchIndex].element]
+          const stemKorean = STEMS[dw.stemIndex].korean
+          const isCurrent = i === currentIdx
+          const stemDesc = STEM_DAEWOON_DESC[stemKorean] ?? ''
           return (
-            <div key={i} className="rounded-xl bg-white p-3 shadow-sm border border-border">
+            <div key={i} className={`rounded-xl p-3 shadow-sm border ${isCurrent ? 'border-indigo-400 bg-indigo-50' : 'border-border bg-white'}`}>
+              {isCurrent && (
+                <div className="flex items-center gap-1 mb-2">
+                  <span className="inline-flex items-center rounded-full bg-indigo-600 px-2.5 py-0.5 text-[11px] font-bold text-white">▶ 현재 내 대운</span>
+                  <span className="text-[10px] text-indigo-600">({currentAge}세)</span>
+                </div>
+              )}
               <div className="flex items-center gap-3">
                 <div className="flex flex-col items-center min-w-[52px]">
                   <span className="text-[10px] font-semibold text-muted-foreground">{dw.startAge}세~</span>
                   <span className={`text-xl font-bold ${ELEM_TEXT[stemE]}`}>{STEMS[dw.stemIndex].char}</span>
                   <span className="text-lg font-semibold text-foreground">{BRANCHES[dw.branchIndex].char}</span>
-                  <span className="text-[10px] text-muted-foreground">{STEMS[dw.stemIndex].korean}{BRANCHES[dw.branchIndex].korean}</span>
+                  <span className="text-[10px] text-muted-foreground">{stemKorean}{BRANCHES[dw.branchIndex].korean}</span>
                 </div>
                 <div className="flex-1">
-                  <div className="flex gap-1 mb-1.5">
-                    <Chip className={`${ELEM_BG[stemE]} ${ELEM_TEXT[stemE]}`}>천간 {stemE}</Chip>
+                  <div className="flex gap-1 mb-1.5 flex-wrap">
+                    <Chip className={`${ELEM_BG[stemE]} ${ELEM_TEXT[stemE]}`}>천간 {stemKorean}({stemE})</Chip>
                     <Chip className={`${ELEM_BG[branchE]} ${ELEM_TEXT[branchE]}`}>지지 {branchE}</Chip>
                   </div>
-                  <p className="text-[11px] leading-relaxed text-foreground">{DAEWOON_DESC[stemE]}</p>
+                  <p className="text-[11px] leading-relaxed text-foreground">{stemDesc}</p>
                 </div>
               </div>
             </div>
@@ -687,7 +748,7 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
           <TenGodsSection tenGods={sajuResult.tenGods} fourPillars={sajuResult.fourPillars} />
           <SipIunSeongSection sipIunSeong={sajuResult.sipIunSeong} fourPillars={sajuResult.fourPillars} />
           <GongMangSection gongMang={sajuResult.gongMang} />
-          <DaewoonSection daewoon={sajuResult.daewoon} />
+          <DaewoonSection daewoon={sajuResult.daewoon} birthYear={sajuResult.input.year} />
 
           {/* 구분선 */}
           <div className="flex items-center gap-3 my-1">
