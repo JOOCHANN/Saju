@@ -321,14 +321,32 @@ function DaewoonSection({ daewoon }: { daewoon: SajuResult['daewoon'] }) {
 // 서브 컴포넌트: AI 해석 텍스트
 // ────────────────────────────────────────────────────────────────────────────
 
+function parseSections(text: string): { title: string; lines: string[] }[] {
+  const sections: { title: string; lines: string[] }[] = []
+  let current: { title: string; lines: string[] } | null = null
+  for (const line of text.split('\n')) {
+    if (line.startsWith('## ')) {
+      if (current) sections.push(current)
+      current = { title: line.slice(3).trim(), lines: [] }
+    } else if (current && line.trim()) {
+      current.lines.push(line)
+    }
+  }
+  if (current) sections.push(current)
+  return sections
+}
+
 function AiInterpretation({
   text,
   isStreaming,
+  isDone,
+  error,
 }: {
   text: string
   isStreaming: boolean
+  isDone: boolean
+  error: string
 }) {
-  // 섹션 아이콘 매핑
   const sectionIcons: Record<string, string> = {
     연애운: '💕',
     결혼운: '💍',
@@ -347,37 +365,15 @@ function AiInterpretation({
         )}
       </div>
 
-      {text ? (
+      {/* 에러 */}
+      {error && (
+        <p className="text-sm text-destructive">{error}</p>
+      )}
+
+      {/* 스트리밍 중이거나 텍스트 있을 때 */}
+      {!error && text && (
         <div className="flex flex-col gap-4">
-          {text.split('\n').reduce<{ sections: { title: string; lines: string[] }[]; current: { title: string; lines: string[] } | null }>(
-            (acc, line) => {
-              if (line.startsWith('## ')) {
-                if (acc.current) acc.sections.push(acc.current)
-                acc.current = { title: line.slice(3).trim(), lines: [] }
-              } else if (acc.current && line.trim()) {
-                acc.current.lines.push(line)
-              }
-              return acc
-            },
-            { sections: [], current: null },
-          ).sections.concat(
-            /* flush last section */
-            (() => {
-              const lines = text.split('\n')
-              let current: { title: string; lines: string[] } | null = null
-              for (const line of lines) {
-                if (line.startsWith('## ')) {
-                  current = { title: line.slice(3).trim(), lines: [] }
-                } else if (current && line.trim()) {
-                  current.lines.push(line)
-                }
-              }
-              return current ? [current] : []
-            })()
-          ).filter((s, i, arr) =>
-            // 중복 제거: 같은 title의 마지막 것만 남김
-            arr.findLastIndex((x) => x.title === s.title) === i
-          ).map((section) => (
+          {parseSections(text).map((section) => (
             <div key={section.title} className="rounded-lg bg-white/80 p-3 shadow-sm">
               <div className="mb-1.5 flex items-center gap-1.5">
                 <span className="text-base">{sectionIcons[section.title] ?? '📌'}</span>
@@ -392,11 +388,19 @@ function AiInterpretation({
             <span className="inline-block h-4 w-0.5 animate-pulse bg-indigo-400" />
           )}
         </div>
-      ) : (
+      )}
+
+      {/* 로딩 중 (스트리밍 시작 전) */}
+      {!error && !text && isStreaming && (
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Loader2 size={14} className="animate-spin" />
           <span>사주를 해석하는 중이에요...</span>
         </div>
+      )}
+
+      {/* 완료됐는데 텍스트 없음 (API 키 미설정 등) */}
+      {!error && !text && isDone && (
+        <p className="text-sm text-muted-foreground">해석을 불러올 수 없어요. API 키를 확인해주세요.</p>
       )}
     </div>
   )
@@ -416,6 +420,7 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
   const [status, setStatus] = useState<Status>('idle')
   const [sajuResult, setSajuResult] = useState<SajuResult | null>(null)
   const [aiText, setAiText] = useState('')
+  const [aiError, setAiError] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
@@ -431,6 +436,7 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
     if (isNaN(y) || y < 1900 || y > 2020) return
 
     setAiText('')
+    setAiError('')
     setErrorMsg('')
     setSajuResult(null)
     setStatus('loading')
@@ -476,8 +482,9 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
               setStatus('streaming')
             } else if (evt.type === 'text') {
               setAiText((prev) => prev + evt.text)
+            } else if (evt.type === 'ai_error') {
+              setAiError('AI 해석 중 오류가 발생했어요: ' + evt.message)
             }
-            // ai_error는 무시 (사주 결과는 이미 표시됨)
           } catch {
             // JSON 파싱 오류 무시
           }
@@ -494,6 +501,7 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
   function handleReset() {
     setSajuResult(null)
     setAiText('')
+    setAiError('')
     setErrorMsg('')
     setStatus('idle')
     setIsSaved(false)
@@ -760,6 +768,8 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
           <AiInterpretation
             text={aiText}
             isStreaming={status === 'streaming'}
+            isDone={status === 'done'}
+            error={aiError}
           />
 
           {/* 저장 버튼 — 해석 완료 후 표시 */}
