@@ -1,6 +1,67 @@
 // Claude/OpenAI 사주 해석 프롬프트 생성
 import type { SajuResult } from '@/lib/saju'
 
+// ────────────────────────────────────────────────────────────────────────────
+// 궁합 분석 프롬프트
+// ────────────────────────────────────────────────────────────────────────────
+
+export const GUNGHAP_SYSTEM_PROMPT = `당신은 30년 경력의 사주 명리학 전문가입니다.
+두 사람의 사주팔자를 비교하여 궁합을 분석합니다.
+초등학생도 이해할 수 있는 쉬운 한국어로 해설합니다.
+
+작성 원칙:
+- 각 섹션 첫 줄에 반드시 **요약**: [20자 이내 핵심 한 문장] 형식으로 시작
+- 요약 다음 줄에 반드시 **점수**: [1~100 사이 정수] 형식으로 두 사람의 궁합 강도를 표현 (70 이상=잘 맞음, 50~69=보통, 49 이하=노력 필요)
+- 점수 다음 줄에 최소 4~5문장의 상세 해설 작성 (두 사람의 기질 차이와 시너지를 구체적으로)
+- 어려운 한자어 대신 쉬운 우리말 사용 (비견→나와 비슷한 사람, 편재→사업 돈)
+- 단정적 예언 대신 경향과 가능성으로 서술 (~하는 경향이 있어요, ~할 수 있어요)
+- 섹션은 마크다운 ## 헤딩으로 구분
+- '두 사람을 위한 핵심 조언' 섹션은 반드시 **요약**: 한 줄 후, - 불렛으로 5개 이상 작성
+- 총 분량: 1000~1400자`
+
+export function buildGunghapUserMessage(result1: SajuResult, result2: SajuResult): string {
+  const { fourPillars: fp1, dayMaster: dm1, elementBalance: eb1 } = result1
+  const { fourPillars: fp2, dayMaster: dm2, elementBalance: eb2 } = result2
+
+  const elemLine = (eb: typeof eb1) =>
+    Object.entries(eb).map(([e, n]) => `${e}${n}개`).join(' ')
+
+  const hour1 = fp1.hour
+    ? `시주: ${fp1.hour.stem}${fp1.hour.branch}(${fp1.hour.stemKorean}${fp1.hour.branchKorean})`
+    : '시주: 미입력'
+  const hour2 = fp2.hour
+    ? `시주: ${fp2.hour.stem}${fp2.hour.branch}(${fp2.hour.stemKorean}${fp2.hour.branchKorean})`
+    : '시주: 미입력'
+
+  return `두 사람의 궁합을 분석해주세요.
+
+## 나 (사람1)
+연주: ${fp1.year.stem}${fp1.year.branch}(${fp1.year.stemKorean}${fp1.year.branchKorean}) [${fp1.year.zodiac}띠]
+월주: ${fp1.month.stem}${fp1.month.branch}(${fp1.month.stemKorean}${fp1.month.branchKorean})
+일주: ${fp1.day.stem}${fp1.day.branch}(${fp1.day.stemKorean}${fp1.day.branchKorean})
+${hour1}
+일간: ${dm1.stem}(${dm1.stemKorean}) — ${dm1.element} ${dm1.yinYang}
+오행 분포: ${elemLine(eb1)}
+
+## 상대 (사람2)
+연주: ${fp2.year.stem}${fp2.year.branch}(${fp2.year.stemKorean}${fp2.year.branchKorean}) [${fp2.year.zodiac}띠]
+월주: ${fp2.month.stem}${fp2.month.branch}(${fp2.month.stemKorean}${fp2.month.branchKorean})
+일주: ${fp2.day.stem}${fp2.day.branch}(${fp2.day.stemKorean}${fp2.day.branchKorean})
+${hour2}
+일간: ${dm2.stem}(${dm2.stemKorean}) — ${dm2.element} ${dm2.yinYang}
+오행 분포: ${elemLine(eb2)}
+
+---
+위 두 사람의 사주를 비교하여 아래 5개 영역의 궁합을 분석해주세요.
+각 영역은 반드시 **요약**: 한 줄 + **점수**: 로 시작하고, 두 사람의 기질 차이와 시너지를 구체적으로 서술하세요.
+
+## 성격 궁합
+## 연애 궁합
+## 결혼 궁합
+## 재물 궁합
+## 두 사람을 위한 핵심 조언`
+}
+
 export const SAJU_SYSTEM_PROMPT = `당신은 30년 경력의 사주 명리학 전문가입니다.
 사주팔자를 바탕으로 연애, 결혼, 금전, 직업, 건강 영역을 초등학생도 이해할 수 있는 쉬운 한국어로 해설합니다.
 

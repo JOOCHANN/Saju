@@ -21,14 +21,13 @@ const services = [
     iconColor: 'text-amber-600',
   },
   {
-    href: '/saju',
+    href: '/gunghap',
     icon: Heart,
     title: '궁합',
     desc: '나와 맞는\n상대는?',
     bg: 'bg-rose-50',
     iconBg: 'bg-rose-100',
     iconColor: 'text-rose-500',
-    soon: true,
   },
   {
     href: '/saju',
