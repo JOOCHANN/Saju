@@ -138,7 +138,17 @@ export default function FortuneClient() {
       const json = (await res.json()) as { data?: DailyFortune; error?: string }
 
       if (!res.ok || !json.data) {
-        throw new Error(json.error ?? '운세를 불러오지 못했어요.')
+        const ERROR_MESSAGES: Record<string, string> = {
+          AI_KEY_MISSING: 'AI 서비스가 아직 설정되지 않았어요.',
+          AI_AUTH_ERROR: 'AI 인증에 실패했어요. 관리자에게 문의하세요.',
+          AI_RATE_LIMIT: '요청이 너무 많아요. 잠시 후 다시 시도해주세요.',
+          AI_OVERLOADED: 'AI 서비스가 일시적으로 과부하 상태예요. 잠시 후 다시 시도해주세요.',
+          AI_PARSE_ERROR: '운세 데이터를 처리하는 중 오류가 발생했어요.',
+          INVALID_ZODIAC: '올바른 띠를 선택해주세요.',
+          AI_ERROR: '운세 생성 중 오류가 발생했어요. 다시 시도해주세요.',
+        }
+        const code = json.error ?? 'AI_ERROR'
+        throw new Error(ERROR_MESSAGES[code] ?? '운세를 불러오지 못했어요. 다시 시도해주세요.')
       }
 
       setFortune(json.data)

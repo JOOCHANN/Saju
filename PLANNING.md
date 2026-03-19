@@ -86,6 +86,7 @@ Saju/
 | Step 6 | AI 연동 (Claude API + SSE 스트리밍 + 결과 UI) | ✅ 완료 |
 | Step 7 | 오늘의 운세 (12간지 UI + Redis 캐싱 + 운세 카드) | ✅ 완료 |
 | Step 8 | 마이페이지 / 보관함 (분석 저장·조회, 계정 설정) | ✅ 완료 |
+| Step 9 | 전통 사주 알고리즘 고도화 (지장간·십이운성·공망·대운·신살) | ✅ 완료 |
 
 ---
 
@@ -268,6 +269,41 @@ pnpm db:migrate    # Supabase에 스키마 적용
 - 생년월일 민감 데이터: `user_profiles.birthDate/birthHour` AES-256-GCM 암호화
 - `readings.resultData`: 사주 계산 결과 + AI 텍스트 (민감하지 않은 데이터만, 별도 암호화 없음)
 - 보관함 페이지: 서버 컴포넌트로 초기 데이터 fetch → `StorageClient`로 삭제 인터랙션 처리
+
+---
+
+### Step 9 — 전통 사주 알고리즘 고도화 ✅
+
+**완료 내용:**
+- `src/lib/saju/constants.ts` — 전통 사주 상수 추가:
+  - `JI_JANG_GAN` — 12지지별 지장간(支藏干) 테이블 `[여기?, 중기?, 본기]`
+  - `SIP_IUN_SEONG_NAMES` / `JANG_SAENG_BRANCHES` — 십이운성(十二運星) 12단계 + 천간별 장생 지지
+  - `SAMHAP_GROUP` / `SINSAL_BY_GROUP` — 삼합(三合) 기반 신살(神殺) 계산 테이블
+- `src/lib/saju/calculator.ts` — 5개 계산 함수 추가:
+  - `getJiJangGan(branchIndex)` — 지장간 반환
+  - `getSipIunSeongIndex()` / `getSipIunSeongName()` — 일간 기준 십이운성 단계 (양간 순행, 음간 역행)
+  - `getGongMang(stemIndex, branchIndex)` — 공망(空亡) 2개 지지 반환
+  - `getSinsal(yearBranchIndex)` — 도화살·역마살·화개살 지지 인덱스
+  - `getDaewoon(...)` — 대운(大運) 8개 (성별·연간 음양 기반 순행/역행, 절기 일수÷3 시작나이)
+- `src/lib/saju/index.ts` — `SajuResult` 타입 및 `calculateSaju()` 확장:
+  - `jiJangGan`, `sipIunSeong`, `gongMang`, `daewoon`, `sinsal` 필드 추가
+  - `summary` 텍스트에 공망·첫 대운 정보 포함
+- `src/app/api/fortune/daily/route.ts` — 오늘의 운세 에러 처리 개선:
+  - 에러 코드 정규화 (`AI_KEY_MISSING`, `AI_AUTH_ERROR`, `AI_RATE_LIMIT`, `AI_OVERLOADED`, `AI_PARSE_ERROR`)
+  - `max_tokens` 600 → 1024 (JSON 잘림 방지)
+- `src/components/fortune/FortuneClient.tsx` — 에러 코드 → 한국어 메시지 매핑 추가
+
+**알고리즘 핵심 공식:**
+- **십이운성**: 양간(짝수) 순행 `(branch - jangSaeng) mod 12`, 음간(홀수) 역행 `(jangSaeng - branch) mod 12`
+- **공망**: 일주의 `b0 = (branch - stem) mod 12`, 공망 = `[b0+10, b0+11] mod 12`
+- **대운 방향**: (남+양년) 또는 (여+음년) → 순행; (남+음년) 또는 (여+양년) → 역행
+- **대운 시작 나이**: 출생일~다음/이전 절기 일수 ÷ 3 (반올림)
+
+**주요 기술 결정:**
+- 외부 라이브러리 0개 유지 — Edge Runtime 완전 호환
+- 절기 근사값(±1일) 사용 — 정확한 천문 계산은 향후 Phase에서 교체 예정
+- 일간(日干) 기준으로 십이운성 계산 (자평명리 기준)
+- 신살은 년지(年支) 기준 삼합 그룹으로 계산
 
 ---
 

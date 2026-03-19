@@ -1,18 +1,25 @@
 // 사주 계산 엔진 — Public API
 // Edge Runtime 완전 호환 (Node.js API 미사용)
-export type { ElementName, TenGodName } from './constants'
+export type { ElementName, TenGodName, SipIunSeongName } from './constants'
 import { BRANCHES, ELEMENT_NAMES, STEMS } from './constants'
 import {
   countElements,
+  getDaewoon,
   getDayGanzhi,
+  getGongMang,
   getHourBranchIndex,
   getHourStemIndex,
+  getJiJangGan,
   getMonthBranchIndex,
   getMonthStemIndex,
+  getSinsal,
+  getSipIunSeongName,
   getTenGod,
   getYearGanzhi,
+  type DaewoonPillar,
+  type Sinsal,
 } from './calculator'
-import type { ElementName, TenGodName } from './constants'
+import type { ElementName, SipIunSeongName, TenGodName } from './constants'
 
 // ────────────────────────────────────────────────────────────────────────────
 // 타입 정의
@@ -77,9 +84,32 @@ export interface SajuResult {
     month: TenGodName
     hour: TenGodName | null
   }
+  /** 지장간 — 각 기둥 지지에 숨겨진 천간들 (본기·중기·여기) */
+  jiJangGan: {
+    year: readonly number[]
+    month: readonly number[]
+    day: readonly number[]
+    hour: readonly number[] | null
+  }
+  /** 십이운성 — 일간이 각 기둥 지지에서 갖는 생명 주기 단계 */
+  sipIunSeong: {
+    year: SipIunSeongName
+    month: SipIunSeongName
+    day: SipIunSeongName
+    hour: SipIunSeongName | null
+  }
+  /** 공망 — 일주 기준 비어있는 지지 두 개 */
+  gongMang: [number, number]
+  /** 대운 — 성별·연간 음양 기반 10년 주기 운세 8개 */
+  daewoon: DaewoonPillar[]
+  /** 신살 — 년지 기준 도화·역마·화개살 지지 인덱스 */
+  sinsal: Sinsal
   /** AI 프롬프트용 텍스트 요약 */
   summary: string
 }
+
+// 타입 재출력 (외부에서 사용 가능하도록)
+export type { DaewoonPillar, Sinsal }
 
 // ────────────────────────────────────────────────────────────────────────────
 // 헬퍼
@@ -176,6 +206,39 @@ export function calculateSaju(input: SajuInput): SajuResult {
     yinYang: (dayMasterStem.yinYang === 0 ? '양' : '음') as '양' | '음',
   }
 
+  // ── 지장간 ────────────────────────────────────────────────────────────────
+  const jiJangGan = {
+    year: getJiJangGan(yearBranchIdx),
+    month: getJiJangGan(monthBranchIdx),
+    day: getJiJangGan(dayBranchIdx),
+    hour: hourBranchIdx !== null ? getJiJangGan(hourBranchIdx) : null,
+  }
+
+  // ── 십이운성 (일간 기준으로 각 기둥 지지에서의 단계) ──────────────────────
+  const sipIunSeong = {
+    year: getSipIunSeongName(dayStemIdx, yearBranchIdx),
+    month: getSipIunSeongName(dayStemIdx, monthBranchIdx),
+    day: getSipIunSeongName(dayStemIdx, dayBranchIdx),
+    hour: hourBranchIdx !== null ? getSipIunSeongName(dayStemIdx, hourBranchIdx) : null,
+  }
+
+  // ── 공망 (일주 기준) ──────────────────────────────────────────────────────
+  const gongMang = getGongMang(dayStemIdx, dayBranchIdx)
+
+  // ── 대운 ──────────────────────────────────────────────────────────────────
+  const daewoon = getDaewoon(
+    yearStemIdx,
+    monthStemIdx,
+    monthBranchIdx,
+    year,
+    month,
+    day,
+    input.gender,
+  )
+
+  // ── 신살 (년지 기준) ──────────────────────────────────────────────────────
+  const sinsal = getSinsal(yearBranchIdx)
+
   // ── AI 프롬프트용 요약 ────────────────────────────────────────────────────
   const hourLabel = hourPillar ? `${hourPillar.branchKorean}시생` : '시간 미입력'
   const pillarsText = [
@@ -197,12 +260,21 @@ export function calculateSaju(input: SajuInput): SajuResult {
     .filter(Boolean)
     .join(', ')
 
+  const { BRANCHES: B, STEMS: S } = { BRANCHES, STEMS }
+  const gongMangText = gongMang.map((b) => B[b].korean).join('·')
+  const daewoon0 = daewoon[0]
+  const daewoonText = daewoon0
+    ? `${daewoon0.startAge}세부터 ${S[daewoon0.stemIndex].korean}${B[daewoon0.branchIndex].korean}운`
+    : ''
+
   const summary =
     `${year}년 ${month}월 ${day}일 ${hourLabel}. ` +
     `사주: ${pillarsText}. ` +
     `일간 ${dayMaster.stem}${dayMaster.stemKorean}(${dayMaster.element} ${dayMaster.yinYang}). ` +
     `오행 분포: ${elemText}. ` +
-    `십신: ${tenGodText}.`
+    `십신: ${tenGodText}. ` +
+    `공망: ${gongMangText}. ` +
+    (daewoonText ? `첫 대운: ${daewoonText}.` : '')
 
   return {
     input,
@@ -215,6 +287,11 @@ export function calculateSaju(input: SajuInput): SajuResult {
     dayMaster,
     elementBalance,
     tenGods,
+    jiJangGan,
+    sipIunSeong,
+    gongMang,
+    daewoon,
+    sinsal,
     summary,
   }
 }

@@ -29,7 +29,7 @@ export interface DailyFortune {
 
 async function generateFortune(zodiac: string, date: string): Promise<DailyFortune> {
   const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) throw new Error('AI_NOT_CONFIGURED')
+  if (!apiKey) throw new Error('AI_KEY_MISSING')
 
   const anthropic = new Anthropic({ apiKey })
 
@@ -47,19 +47,19 @@ async function generateFortune(zodiac: string, date: string): Promise<DailyFortu
   "luckyNumber": 정수
 }
 
-JSON만 응답하고 다른 텍스트는 포함하지 마세요.`
+반드시 위 JSON 형식만 응답하고 다른 텍스트나 마크다운 코드 블록은 포함하지 마세요.`
 
   const message = await anthropic.messages.create({
-    model: 'claude-haiku-4-5-20251001', // 빠르고 저렴한 모델로 운세 생성
-    max_tokens: 600,
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 1024,
     messages: [{ role: 'user', content: prompt }],
   })
 
-  const text = message.content[0].type === 'text' ? message.content[0].text : ''
+  const text = message.content[0].type === 'text' ? message.content[0].text.trim() : ''
 
   // JSON 추출 (```json ... ``` 블록 또는 순수 JSON)
   const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (!jsonMatch) throw new Error('INVALID_AI_RESPONSE')
+  if (!jsonMatch) throw new Error('AI_PARSE_ERROR')
 
   const parsed = JSON.parse(jsonMatch[0]) as Omit<DailyFortune, 'zodiac' | 'date'>
 
@@ -118,8 +118,16 @@ export async function GET(request: Request) {
   try {
     fortune = await generateFortune(zodiac, date)
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'UNKNOWN_ERROR'
-    return Response.json({ error: message }, { status: 503 })
+    const raw = err instanceof Error ? err.message : 'UNKNOWN_ERROR'
+    // 사용자에게 노출할 에러 코드 정규화
+    let code: string
+    if (raw === 'AI_KEY_MISSING') code = 'AI_KEY_MISSING'
+    else if (raw === 'AI_PARSE_ERROR') code = 'AI_PARSE_ERROR'
+    else if (raw.includes('401') || raw.includes('auth')) code = 'AI_AUTH_ERROR'
+    else if (raw.includes('429') || raw.includes('rate')) code = 'AI_RATE_LIMIT'
+    else if (raw.includes('529') || raw.includes('overload')) code = 'AI_OVERLOADED'
+    else code = 'AI_ERROR'
+    return Response.json({ error: code }, { status: 503 })
   }
 
   // ── Redis 캐시 저장 ────────────────────────────────────────────────────
