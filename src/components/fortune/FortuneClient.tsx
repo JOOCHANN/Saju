@@ -215,7 +215,8 @@ function BottomSheet({
         aria-hidden="true"
       />
       <div
-        className="relative w-full rounded-t-2xl bg-background pb-8 pt-4 shadow-xl"
+        className="relative w-full rounded-t-2xl bg-background pt-4 shadow-xl"
+        style={{ maxHeight: '70vh' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* 핸들 */}
@@ -227,36 +228,39 @@ function BottomSheet({
             <X size={18} />
           </button>
         </div>
-        {/* 선택 안함 */}
-        <div className="px-4 pb-3">
-          <button
-            type="button"
-            onClick={() => { onSelect(null); onClose() }}
-            className={`w-full rounded-xl border py-2.5 text-sm font-medium transition-colors ${
-              selected === null
-                ? 'border-amber-400 bg-amber-50 text-amber-700'
-                : 'border-border text-muted-foreground'
-            }`}
-          >
-            선택 안함
-          </button>
-        </div>
-        {/* 숫자 그리드 */}
-        <div className={`grid px-4 gap-2`} style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
-          {items.map((item) => (
+        {/* 스크롤 영역 */}
+        <div className="overflow-y-auto pb-8" style={{ maxHeight: 'calc(70vh - 80px)' }}>
+          {/* 선택 안함 */}
+          <div className="px-4 pb-3">
             <button
-              key={item}
               type="button"
-              onClick={() => { onSelect(item); onClose() }}
-              className={`rounded-xl border py-2.5 text-sm font-medium transition-colors ${
-                selected === item
-                  ? 'border-amber-400 bg-amber-400 text-white'
-                  : 'border-border bg-card text-foreground hover:bg-muted/50'
+              onClick={() => { onSelect(null); onClose() }}
+              className={`w-full rounded-xl border py-2.5 text-sm font-medium transition-colors ${
+                selected === null
+                  ? 'border-amber-400 bg-amber-50 text-amber-700'
+                  : 'border-border text-muted-foreground'
               }`}
             >
-              {item}
+              선택 안함
             </button>
-          ))}
+          </div>
+          {/* 숫자 그리드 */}
+          <div className="grid px-4 gap-2" style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+            {items.map((item) => (
+              <button
+                key={item}
+                type="button"
+                onClick={() => { onSelect(item); onClose() }}
+                className={`rounded-xl border py-2.5 text-sm font-medium transition-colors ${
+                  selected === item
+                    ? 'border-amber-400 bg-amber-400 text-white'
+                    : 'border-border bg-card text-foreground hover:bg-muted/50'
+                }`}
+              >
+                {item}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
