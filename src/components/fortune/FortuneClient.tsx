@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowLeft, ChevronDown, Loader2, RefreshCw, Sparkles } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Loader2, RefreshCw, Sparkles, X } from 'lucide-react'
 import { ZODIACS, getRecentYears, getZodiacByYear } from '@/lib/fortune/zodiac'
 import type { ZodiacData } from '@/lib/fortune/zodiac'
 import type { DailyFortune } from '@/app/api/fortune/daily/route'
@@ -190,55 +190,75 @@ function getAllYearsForZodiac(zodiac: ZodiacData): number[] {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// 메인 컴포넌트
+// 바텀시트 컴포넌트
 // ────────────────────────────────────────────────────────────────────────────
 
-// ────────────────────────────────────────────────────────────────────────────
-// 칩 선택 행 컴포넌트
-// ────────────────────────────────────────────────────────────────────────────
-
-function ChipRow<T extends number>({
+function BottomSheet({
+  title,
   items,
   selected,
   onSelect,
-  format,
-  optional,
+  onClose,
+  cols = 4,
 }: {
-  items: T[]
-  selected: T | null
-  onSelect: (v: T | null) => void
-  format: (v: T) => string
-  optional?: boolean
+  title: string
+  items: number[]
+  selected: number | null
+  onSelect: (v: number | null) => void
+  onClose: () => void
+  cols?: number
 }) {
   return (
-    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-      {optional && (
-        <button
-          type="button"
-          onClick={() => onSelect(null)}
-          className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
-            selected === null
-              ? 'border-amber-400 bg-amber-400 text-white'
-              : 'border-border bg-card text-muted-foreground'
-          }`}
-        >
-          선택 안함
-        </button>
-      )}
-      {items.map((item) => (
-        <button
-          key={item}
-          type="button"
-          onClick={() => onSelect(selected === item && optional ? null : item)}
-          className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
-            selected === item
-              ? 'border-amber-400 bg-amber-400 text-white'
-              : 'border-border bg-card text-muted-foreground hover:border-amber-200 hover:bg-amber-50'
-          }`}
-        >
-          {format(item)}
-        </button>
-      ))}
+    <div className="fixed inset-0 z-50 flex items-end" onClick={onClose}>
+      <div
+        className="absolute inset-0 bg-black/40"
+        aria-hidden="true"
+      />
+      <div
+        className="relative w-full rounded-t-2xl bg-background pb-8 pt-4 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* 핸들 */}
+        <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-muted" />
+        {/* 헤더 */}
+        <div className="flex items-center justify-between px-5 pb-4">
+          <p className="font-semibold">{title}</p>
+          <button type="button" onClick={onClose} className="rounded-full p-1 hover:bg-muted/60">
+            <X size={18} />
+          </button>
+        </div>
+        {/* 선택 안함 */}
+        <div className="px-4 pb-3">
+          <button
+            type="button"
+            onClick={() => { onSelect(null); onClose() }}
+            className={`w-full rounded-xl border py-2.5 text-sm font-medium transition-colors ${
+              selected === null
+                ? 'border-amber-400 bg-amber-50 text-amber-700'
+                : 'border-border text-muted-foreground'
+            }`}
+          >
+            선택 안함
+          </button>
+        </div>
+        {/* 숫자 그리드 */}
+        <div className={`grid px-4 gap-2`} style={{ gridTemplateColumns: `repeat(${cols}, 1fr)` }}>
+          {items.map((item) => (
+            <button
+              key={item}
+              type="button"
+              onClick={() => { onSelect(item); onClose() }}
+              className={`rounded-xl border py-2.5 text-sm font-medium transition-colors ${
+                selected === item
+                  ? 'border-amber-400 bg-amber-400 text-white'
+                  : 'border-border bg-card text-foreground hover:bg-muted/50'
+              }`}
+            >
+              {item}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
@@ -260,6 +280,7 @@ export default function FortuneClient() {
   const [birthYear, setBirthYear] = useState<number | null>(null)
   const [birthMonth, setBirthMonth] = useState<number | null>(null)
   const [birthDay, setBirthDay] = useState<number | null>(null)
+  const [bottomSheet, setBottomSheet] = useState<'month' | 'day' | null>(null)
 
   const ERROR_MESSAGES: Record<string, string> = {
     AI_KEY_MISSING: 'AI 서비스가 아직 설정되지 않았어요.',
@@ -353,6 +374,7 @@ export default function FortuneClient() {
     const years = getAllYearsForZodiac(selectedZodiac)
     return (
       <div className="flex flex-col gap-5 px-4 py-5">
+        {/* 헤더 */}
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -370,60 +392,88 @@ export default function FortuneClient() {
           </div>
         </div>
 
-        <div className="flex flex-col gap-5">
-          <div className="rounded-2xl border border-amber-100 bg-amber-50 p-3 text-[12px] leading-relaxed text-amber-800">
-            ✨ 생년월일을 선택하면 사주 기반으로 더 개인화된 오늘의 운세를 알려드려요. 월·일은 선택 안 해도 돼요.
-          </div>
+        <div className="rounded-2xl border border-amber-100 bg-amber-50 p-3 text-[12px] leading-relaxed text-amber-800">
+          ✨ 정확한 생년월일일수록 나에게 딱 맞는 운세를 볼 수 있어요. 월·일은 생략해도 괜찮아요.
+        </div>
 
-          {/* 출생 연도 */}
-          <div className="flex flex-col gap-2">
-            <p className="text-sm font-semibold">출생 연도 <span className="text-amber-500">*</span></p>
-            <ChipRow
-              items={years}
-              selected={birthYear}
-              onSelect={setBirthYear}
-              format={(y) => `${y}년`}
-            />
+        {/* 출생 연도 — 한 눈에 다 보이는 wrap 칩 */}
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-semibold">출생 연도 <span className="text-amber-500">*</span></p>
+          <div className="flex flex-wrap gap-2">
+            {years.map((y) => (
+              <button
+                key={y}
+                type="button"
+                onClick={() => setBirthYear(y)}
+                className={`rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+                  birthYear === y
+                    ? 'border-amber-400 bg-amber-400 text-white'
+                    : 'border-border bg-card text-foreground hover:border-amber-200 hover:bg-amber-50'
+                }`}
+              >
+                {y}년
+              </button>
+            ))}
           </div>
+        </div>
 
-          {/* 월 (선택 사항) */}
-          <div className="flex flex-col gap-2">
-            <p className="text-sm font-semibold text-muted-foreground">
-              월 <span className="text-xs font-normal">(선택 사항)</span>
-            </p>
-            <ChipRow
-              items={Array.from({ length: 12 }, (_, i) => i + 1) as number[]}
-              selected={birthMonth}
-              onSelect={setBirthMonth}
-              format={(m) => `${m}월`}
-              optional
-            />
-          </div>
-
-          {/* 일 (선택 사항) */}
-          <div className="flex flex-col gap-2">
-            <p className="text-sm font-semibold text-muted-foreground">
-              일 <span className="text-xs font-normal">(선택 사항)</span>
-            </p>
-            <ChipRow
-              items={Array.from({ length: 31 }, (_, i) => i + 1) as number[]}
-              selected={birthDay}
-              onSelect={setBirthDay}
-              format={(d) => `${d}일`}
-              optional
-            />
-          </div>
-
+        {/* 월·일 — 탭하면 바텀시트 */}
+        <div className="flex gap-3">
+          {/* 월 */}
           <button
             type="button"
-            disabled={!birthYear}
-            onClick={fetchByBirthdate}
-            className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 py-3.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80 disabled:opacity-40"
+            onClick={() => setBottomSheet('month')}
+            className="flex flex-1 items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-sm"
           >
-            <Sparkles size={15} />
-            나만의 오늘 운세 보기
+            <span className="text-muted-foreground text-xs font-medium">월 (선택 사항)</span>
+            <span className={`font-semibold ${birthMonth ? 'text-amber-500' : 'text-muted-foreground'}`}>
+              {birthMonth ? `${birthMonth}월` : '선택 안함'}
+            </span>
+          </button>
+          {/* 일 */}
+          <button
+            type="button"
+            onClick={() => setBottomSheet('day')}
+            className="flex flex-1 items-center justify-between rounded-xl border border-border bg-card px-4 py-3 text-sm"
+          >
+            <span className="text-muted-foreground text-xs font-medium">일 (선택 사항)</span>
+            <span className={`font-semibold ${birthDay ? 'text-amber-500' : 'text-muted-foreground'}`}>
+              {birthDay ? `${birthDay}일` : '선택 안함'}
+            </span>
           </button>
         </div>
+
+        <button
+          type="button"
+          disabled={!birthYear}
+          onClick={fetchByBirthdate}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 py-3.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80 disabled:opacity-40"
+        >
+          <Sparkles size={15} />
+          나만의 오늘 운세 보기
+        </button>
+
+        {/* 바텀시트 */}
+        {bottomSheet === 'month' && (
+          <BottomSheet
+            title="월 선택"
+            items={Array.from({ length: 12 }, (_, i) => i + 1)}
+            selected={birthMonth}
+            onSelect={setBirthMonth}
+            onClose={() => setBottomSheet(null)}
+            cols={4}
+          />
+        )}
+        {bottomSheet === 'day' && (
+          <BottomSheet
+            title="일 선택"
+            items={Array.from({ length: 31 }, (_, i) => i + 1)}
+            selected={birthDay}
+            onSelect={setBirthDay}
+            onClose={() => setBottomSheet(null)}
+            cols={7}
+          />
+        )}
       </div>
     )
   }
