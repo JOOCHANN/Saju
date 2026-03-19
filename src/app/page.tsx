@@ -127,6 +127,9 @@ export default function HomePage() {
           <ChevronRight size={18} className="text-muted-foreground" />
         </div>
       </Link>
+
+      {/* 저작권 */}
+      <p className="text-right text-[11px] text-gray-300">made by 윤공주</p>
     </div>
   )
 }
