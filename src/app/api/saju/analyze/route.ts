@@ -57,7 +57,11 @@ export async function POST(request: Request) {
 
       // 2단계: OpenAI 해석 스트리밍
       try {
-        const openai = new OpenAI({ apiKey })
+        const gatewayUrl = process.env.CF_AI_GATEWAY_URL
+        const openai = new OpenAI({
+          apiKey,
+          ...(gatewayUrl ? { baseURL: gatewayUrl } : {}),
+        })
         const messageStream = await openai.chat.completions.create({
           model: 'gpt-4o-mini',
           max_tokens: 2000,
