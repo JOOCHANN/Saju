@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Calendar, ChevronRight, Heart, Moon, Sparkles } from 'lucide-react'
+import { ChevronRight, Flame, Heart, Moon, Sparkles } from 'lucide-react'
 
 const services = [
   {
@@ -30,14 +30,13 @@ const services = [
     iconColor: 'text-rose-500',
   },
   {
-    href: '/saju',
-    icon: Calendar,
-    title: '택일',
-    desc: '좋은 날\n선택하기',
-    bg: 'bg-emerald-50',
-    iconBg: 'bg-emerald-100',
-    iconColor: 'text-emerald-600',
-    soon: true,
+    href: '/adult-fortune',
+    icon: Flame,
+    title: '19금 사주',
+    desc: '관계·매력·끌림\n오늘의 에너지',
+    bg: 'bg-rose-50',
+    iconBg: 'bg-rose-100',
+    iconColor: 'text-rose-500',
   },
 ]
 
@@ -88,16 +87,12 @@ export default function HomePage() {
       <div>
         <h3 className="mb-3 text-base font-semibold text-foreground">서비스</h3>
         <div className="grid grid-cols-2 gap-3">
-          {services.map(({ href, icon: Icon, title, desc, bg, iconBg, iconColor, soon }) => (
+          {services.map(({ href, icon: Icon, title, desc, bg, iconBg, iconColor }) => (
             <Link key={title} href={href}>
               <div
                 className={`relative flex h-36 flex-col justify-between rounded-2xl p-4 transition-opacity active:opacity-80 ${bg}`}
               >
-                {soon && (
-                  <span className="absolute right-3 top-3 rounded-full bg-muted px-2 py-0.5 text-[10px] font-medium text-muted-foreground">
-                    준비 중
-                  </span>
-                )}
+
                 <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${iconBg}`}>
                   <Icon size={20} className={iconColor} strokeWidth={1.8} />
                 </div>
