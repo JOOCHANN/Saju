@@ -193,6 +193,60 @@ function getAllYearsForZodiac(zodiac: ZodiacData): number[] {
 // 메인 컴포넌트
 // ────────────────────────────────────────────────────────────────────────────
 
+// ────────────────────────────────────────────────────────────────────────────
+// 칩 선택 행 컴포넌트
+// ────────────────────────────────────────────────────────────────────────────
+
+function ChipRow<T extends number>({
+  items,
+  selected,
+  onSelect,
+  format,
+  optional,
+}: {
+  items: T[]
+  selected: T | null
+  onSelect: (v: T | null) => void
+  format: (v: T) => string
+  optional?: boolean
+}) {
+  return (
+    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+      {optional && (
+        <button
+          type="button"
+          onClick={() => onSelect(null)}
+          className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+            selected === null
+              ? 'border-amber-400 bg-amber-400 text-white'
+              : 'border-border bg-card text-muted-foreground'
+          }`}
+        >
+          선택 안함
+        </button>
+      )}
+      {items.map((item) => (
+        <button
+          key={item}
+          type="button"
+          onClick={() => onSelect(selected === item && optional ? null : item)}
+          className={`shrink-0 rounded-full border px-4 py-2 text-sm font-medium transition-colors ${
+            selected === item
+              ? 'border-amber-400 bg-amber-400 text-white'
+              : 'border-border bg-card text-muted-foreground hover:border-amber-200 hover:bg-amber-50'
+          }`}
+        >
+          {format(item)}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// 메인 컴포넌트
+// ────────────────────────────────────────────────────────────────────────────
+
 type Status = 'select' | 'birthdate' | 'loading' | 'done' | 'error'
 
 export default function FortuneClient() {
@@ -202,10 +256,10 @@ export default function FortuneClient() {
   const [errorMsg, setErrorMsg] = useState('')
   const [loadingLabel, setLoadingLabel] = useState('')
 
-  // 생년월일 입력 상태
-  const [birthYear, setBirthYear] = useState('')
-  const [birthMonth, setBirthMonth] = useState('1')
-  const [birthDay, setBirthDay] = useState('1')
+  // 생년월일 선택 상태 (월·일은 선택 사항)
+  const [birthYear, setBirthYear] = useState<number | null>(null)
+  const [birthMonth, setBirthMonth] = useState<number | null>(null)
+  const [birthDay, setBirthDay] = useState<number | null>(null)
 
   const ERROR_MESSAGES: Record<string, string> = {
     AI_KEY_MISSING: 'AI 서비스가 아직 설정되지 않았어요.',
@@ -219,23 +273,25 @@ export default function FortuneClient() {
   function handleZodiacClick(z: ZodiacData) {
     setSelectedZodiac(z)
     const years = getAllYearsForZodiac(z)
-    setBirthYear(String(years[0]))
-    setBirthMonth('1')
-    setBirthDay('1')
+    setBirthYear(years[0])
+    setBirthMonth(null)
+    setBirthDay(null)
     setStatus('birthdate')
   }
 
-  async function fetchByBirthdate(e: React.FormEvent) {
-    e.preventDefault()
-    const y = parseInt(birthYear)
-    if (isNaN(y) || y < 1900 || y > 2020) return
-    const zodiac = getZodiacByYear(y)
-    setLoadingLabel(`${zodiac}띠 (${y}년생 맞춤)`)
+  async function fetchByBirthdate() {
+    if (!birthYear) return
+    const zodiac = getZodiacByYear(birthYear)
+    const monthLabel = birthMonth ? `${birthMonth}월` : ''
+    const dayLabel = birthDay ? ` ${birthDay}일` : ''
+    setLoadingLabel(`${zodiac}띠 (${birthYear}년생${monthLabel}${dayLabel} 맞춤)`)
     setStatus('loading')
     setFortune(null)
     setErrorMsg('')
     try {
-      const params = new URLSearchParams({ year: String(y), month: birthMonth, day: birthDay })
+      const params = new URLSearchParams({ year: String(birthYear) })
+      if (birthMonth) params.set('month', String(birthMonth))
+      if (birthDay) params.set('day', String(birthDay))
       const res = await fetch(`/api/fortune/daily?${params}`)
       const json = (await res.json()) as { data?: DailyFortune; error?: string }
       if (!res.ok || !json.data) throw new Error(ERROR_MESSAGES[json.error ?? 'AI_ERROR'] ?? '오류가 발생했어요.')
@@ -314,62 +370,60 @@ export default function FortuneClient() {
           </div>
         </div>
 
-        <form onSubmit={fetchByBirthdate} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-5">
           <div className="rounded-2xl border border-amber-100 bg-amber-50 p-3 text-[12px] leading-relaxed text-amber-800">
-            ✨ 생년월일을 선택하면 사주 기반으로 더 개인화된 오늘의 운세를 알려드려요.
+            ✨ 생년월일을 선택하면 사주 기반으로 더 개인화된 오늘의 운세를 알려드려요. 월·일은 선택 안 해도 돼요.
           </div>
 
           {/* 출생 연도 */}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-sm font-medium">출생 연도</label>
-            <div className="relative">
-              <select
-                value={birthYear}
-                onChange={(e) => setBirthYear(e.target.value)}
-                required
-                className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 ring-offset-background"
-              >
-                {years.map((y) => (
-                  <option key={y} value={y}>{y}년생</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            </div>
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-semibold">출생 연도 <span className="text-amber-500">*</span></p>
+            <ChipRow
+              items={years}
+              selected={birthYear}
+              onSelect={setBirthYear}
+              format={(y) => `${y}년`}
+            />
           </div>
 
-          {/* 월·일 */}
-          <div className="flex gap-3">
-            {[
-              { id: 'bmonth', label: '월', value: birthMonth, set: setBirthMonth, count: 12, unit: '월' },
-              { id: 'bday',   label: '일', value: birthDay,   set: setBirthDay,   count: 31, unit: '일' },
-            ].map(({ id, label, value, set, count, unit }) => (
-              <div key={id} className="flex flex-1 flex-col gap-1.5">
-                <label className="text-sm font-medium">{label}</label>
-                <div className="relative">
-                  <select
-                    id={id}
-                    value={value}
-                    onChange={(e) => set(e.target.value)}
-                    className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 ring-offset-background"
-                  >
-                    {Array.from({ length: count }, (_, i) => (
-                      <option key={i + 1} value={i + 1}>{i + 1}{unit}</option>
-                    ))}
-                  </select>
-                  <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                </div>
-              </div>
-            ))}
+          {/* 월 (선택 사항) */}
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-semibold text-muted-foreground">
+              월 <span className="text-xs font-normal">(선택 사항)</span>
+            </p>
+            <ChipRow
+              items={Array.from({ length: 12 }, (_, i) => i + 1) as number[]}
+              selected={birthMonth}
+              onSelect={setBirthMonth}
+              format={(m) => `${m}월`}
+              optional
+            />
+          </div>
+
+          {/* 일 (선택 사항) */}
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-semibold text-muted-foreground">
+              일 <span className="text-xs font-normal">(선택 사항)</span>
+            </p>
+            <ChipRow
+              items={Array.from({ length: 31 }, (_, i) => i + 1) as number[]}
+              selected={birthDay}
+              onSelect={setBirthDay}
+              format={(d) => `${d}일`}
+              optional
+            />
           </div>
 
           <button
-            type="submit"
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 py-3.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80"
+            type="button"
+            disabled={!birthYear}
+            onClick={fetchByBirthdate}
+            className="mt-1 flex w-full items-center justify-center gap-2 rounded-xl bg-amber-500 py-3.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80 disabled:opacity-40"
           >
             <Sparkles size={15} />
             나만의 오늘 운세 보기
           </button>
-        </form>
+        </div>
       </div>
     )
   }
