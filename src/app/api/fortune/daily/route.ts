@@ -4,7 +4,7 @@
 import OpenAI from 'openai'
 import { z } from 'zod'
 import { redis, getTodayKST, secondsUntilMidnightKST } from '@/lib/cache/redis'
-import { isValidZodiac, getZodiacByYear } from '@/lib/fortune/zodiac'
+import { isValidZodiac, getZodiacByYear, ZODIACS } from '@/lib/fortune/zodiac'
 import { calculateSaju } from '@/lib/saju'
 
 export const dynamic = 'force-dynamic'
@@ -27,14 +27,75 @@ export interface DailyFortune {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// AI 운세 생성
+// 시드 기반 결정론적 난수 (같은 날 같은 사람 → 동일 결과 / 다른 사람 → 다른 결과)
 // ────────────────────────────────────────────────────────────────────────────
 
-async function generateFortune(
+const LUCKY_COLORS = [
+  '산호색', '민트색', '라벤더색', '황토색', '청록색', '버건디색', '올리브색', '살구색',
+  '하늘색', '자주색', '연두색', '진홍색', '카키색', '아이보리색', '코발트색', '금색',
+  '은색', '베이지색', '에메랄드색', '로즈골드색', '인디고색', '연보라색', '주황색', '장미색',
+  '복숭아색', '하늘색', '밤색', '청포도색',
+]
+
+function lcg(seed: number) {
+  // 선형 합동 생성기 — 0~1 사이 float 반환
+  let s = seed >>> 0
+  return () => {
+    s = ((Math.imul(1664525, s) + 1013904223) >>> 0)
+    return s / 4294967296
+  }
+}
+
+function makeSeed(dateStr: string, extra: number): number {
+  // 날짜(YYYYMMDD) * 소수 + extra → 고유 시드
+  const d = parseInt(dateStr.replace(/-/g, ''), 10)
+  return (d * 31337 + extra * 7919) >>> 0
+}
+
+function computeFortuneNumbers(seed: number) {
+  const rng = lcg(seed)
+
+  // 색상 선택
+  const luckyColor = LUCKY_COLORS[Math.floor(rng() * LUCKY_COLORS.length)]
+
+  // 행운 번호
+  const luckyNumber = Math.floor(rng() * 99) + 1
+
+  // 점수: 0~100, 4개 항목이 서로 다르고 최대-최소 차이 ≥ 25 보장
+  let scores: number[]
+  let attempts = 0
+  do {
+    scores = [
+      Math.floor(rng() * 101),
+      Math.floor(rng() * 101),
+      Math.floor(rng() * 101),
+      Math.floor(rng() * 101),
+    ]
+    attempts++
+  } while (Math.max(...scores) - Math.min(...scores) < 25 && attempts < 30)
+
+  return {
+    score: {
+      overall: scores[0],
+      love: scores[1],
+      money: scores[2],
+      health: scores[3],
+    },
+    luckyColor,
+    luckyNumber,
+  }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// AI 운세 텍스트 생성 (점수·색·번호는 서버에서 직접 계산 후 전달)
+// ────────────────────────────────────────────────────────────────────────────
+
+async function generateFortuneText(
   zodiac: string,
   date: string,
+  numbers: ReturnType<typeof computeFortuneNumbers>,
   sajuContext?: string,
-): Promise<DailyFortune> {
+): Promise<Pick<DailyFortune, 'overall' | 'love' | 'money' | 'health'>> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error('AI_KEY_MISSING')
 
@@ -44,44 +105,36 @@ async function generateFortune(
     ...(gatewayUrl ? { baseURL: gatewayUrl } : {}),
   })
 
-  // 날짜를 seed로 사용해 색상 후보 순서를 섞어 다양성 유도
-  const colorHint = [
-    '산호색', '민트색', '라벤더색', '황토색', '청록색', '버건디색', '올리브색', '살구색',
-    '하늘색', '자주색', '연두색', '진홍색', '카키색', '아이보리색', '코발트색', '금색',
-    '은색', '베이지색', '에메랄드색', '로즈골드색', '인디고색', '연보라색', '주황색', '청자색',
-  ].sort(() => (parseInt(date.replace(/-/g, '')) % 7) - 3).slice(0, 8).join(', ')
+  const { score } = numbers
+  const scoreDesc = (s: number) => s >= 80 ? '매우 좋음' : s >= 60 ? '좋음' : s >= 40 ? '보통' : s >= 20 ? '주의 필요' : '어려운 날'
 
-  const scoreGuide = `점수 규칙: 4개 항목(overall/love/money/health)이 서로 달라야 하고, 가장 높은 것과 낮은 것의 차이가 반드시 20 이상이어야 합니다. 범위 40~95.`
+  const scoreContext = `오늘 점수: 전체운 ${score.overall}(${scoreDesc(score.overall)}), 사랑운 ${score.love}(${scoreDesc(score.love)}), 재물운 ${score.money}(${scoreDesc(score.money)}), 건강운 ${score.health}(${scoreDesc(score.health)})`
 
   const prompt = sajuContext
-    ? `오늘(${date}) 아래 사주 정보를 가진 ${zodiac}띠 사람의 오늘의 운세를 JSON으로 작성해주세요.
+    ? `오늘(${date}) 아래 사주를 가진 ${zodiac}띠 사람의 운세 문장을 JSON으로 작성해주세요.
 
 사주 정보:
 ${sajuContext}
 
-각 운세는 2~3문장으로, 위 사주 특성(출생연도 간지, 일간 기질, 오행 분포)을 반영한 개인화된 내용으로 작성하세요.
-같은 뱀띠라도 辛巳년생과 癸巳년생은 다른 운세가 나와야 합니다.
-긍정적이되 구체적이고 실용적인 조언을 포함하세요.
-${scoreGuide}
-행운 색상은 다음 중 하나를 선택하되 매번 다르게: ${colorHint}
-행운 번호는 1~99 사이 정수.
+${scoreContext}
+위 점수에 맞게 각 운세 2~3문장을 작성하세요. 점수가 낮은 항목은 주의사항 위주로, 높은 항목은 긍정적으로 서술하세요.
+사주 특성(출생연도 간지, 일간 기질, 오행 분포)을 반영한 개인화된 내용으로 작성하세요.
 
-{"overall":"전체운","love":"사랑운","money":"재물운","health":"건강운","score":{"overall":78,"love":55,"money":88,"health":63},"luckyColor":"산호색","luckyNumber":37}
+{"overall":"전체운 2~3문장","love":"사랑운 2~3문장","money":"재물운 2~3문장","health":"건강운 2~3문장"}
 
 반드시 위 JSON 형식만 응답하고 다른 텍스트는 포함하지 마세요.`
-    : `오늘(${date}) ${zodiac}띠 운세를 아래 JSON 형식으로 작성해주세요.
-각 운세는 2~3문장, 자연스러운 한국어로 긍정적이되 구체적으로 서술하세요.
-${scoreGuide}
-행운 색상은 다음 중 하나를 선택하되 매번 다르게: ${colorHint}
-행운 번호는 1~99 사이 정수.
+    : `오늘(${date}) ${zodiac}띠 운세 문장을 JSON으로 작성해주세요.
 
-{"overall":"전체운","love":"사랑운","money":"재물운","health":"건강운","score":{"overall":72,"love":91,"money":58,"health":45},"luckyColor":"청록색","luckyNumber":23}
+${scoreContext}
+위 점수에 맞게 각 운세 2~3문장을 자연스러운 한국어로 작성하세요. 점수가 낮은 항목은 주의사항 위주로, 높은 항목은 긍정적으로 서술하세요.
+
+{"overall":"전체운 2~3문장","love":"사랑운 2~3문장","money":"재물운 2~3문장","health":"건강운 2~3문장"}
 
 반드시 위 JSON 형식만 응답하고 다른 텍스트나 마크다운 코드 블록은 포함하지 마세요.`
 
   const message = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
-    max_tokens: 1024,
+    max_tokens: 800,
     messages: [{ role: 'user', content: prompt }],
   })
 
@@ -89,24 +142,12 @@ ${scoreGuide}
   const jsonMatch = text.match(/\{[\s\S]*\}/)
   if (!jsonMatch) throw new Error('AI_PARSE_ERROR')
 
-  const parsed = JSON.parse(jsonMatch[0]) as Omit<DailyFortune, 'zodiac' | 'date'>
-
+  const parsed = JSON.parse(jsonMatch[0]) as Record<string, string>
   return {
-    zodiac,
-    date,
     overall: String(parsed.overall ?? ''),
     love: String(parsed.love ?? ''),
     money: String(parsed.money ?? ''),
     health: String(parsed.health ?? ''),
-    score: {
-      overall: Number(parsed.score?.overall ?? 3),
-      love: Number(parsed.score?.love ?? 3),
-      money: Number(parsed.score?.money ?? 3),
-      health: Number(parsed.score?.health ?? 3),
-    },
-    luckyColor: String(parsed.luckyColor ?? '파란색'),
-    luckyNumber: Number(parsed.luckyNumber ?? 7),
-    personalized: !!sajuContext,
   }
 }
 
@@ -140,11 +181,13 @@ export async function GET(request: Request) {
   let resolvedZodiac: string
   let cacheKey: string
   let sajuContext: string | undefined
+  let seed: number
 
   if (year && month && day) {
-    // 생년월일 모드
+    // 생년월일 모드 — 시드: 날짜 + 생년월일 고유값
     resolvedZodiac = getZodiacByYear(year)
-    cacheKey = `fortune:${date}:birth:${year}-${month}-${day}`
+    cacheKey = `fortune:v2:${date}:birth:${year}-${month}-${day}`
+    seed = makeSeed(date, year * 10000 + month * 100 + day)
 
     try {
       const saju = calculateSaju({ year, month, day, gender: 'male' })
@@ -162,7 +205,10 @@ export async function GET(request: Request) {
     }
   } else if (zodiac && isValidZodiac(zodiac)) {
     resolvedZodiac = zodiac
-    cacheKey = `fortune:${date}:${zodiac}`
+    cacheKey = `fortune:v2:${date}:${zodiac}`
+    // 띠 모드 — 시드: 날짜 + 띠 인덱스
+    const zodiacIdx = ZODIACS.findIndex((z) => z.name === zodiac)
+    seed = makeSeed(date, zodiacIdx + 1)
   } else {
     return Response.json({ error: 'INVALID_INPUT' }, { status: 400 })
   }
@@ -177,10 +223,13 @@ export async function GET(request: Request) {
     }
   }
 
-  // ── AI 운세 생성 ────────────────────────────────────────────────────────
-  let fortune: DailyFortune
+  // ── 점수·색상·번호 서버에서 계산 ────────────────────────────────────────
+  const numbers = computeFortuneNumbers(seed)
+
+  // ── AI 텍스트 생성 ──────────────────────────────────────────────────────
+  let textContent: Pick<DailyFortune, 'overall' | 'love' | 'money' | 'health'>
   try {
-    fortune = await generateFortune(resolvedZodiac, date, sajuContext)
+    textContent = await generateFortuneText(resolvedZodiac, date, numbers, sajuContext)
   } catch (err) {
     const raw = err instanceof Error ? err.message : 'UNKNOWN_ERROR'
     let code: string
@@ -190,6 +239,14 @@ export async function GET(request: Request) {
     else if (raw.includes('429') || raw.includes('rate')) code = 'AI_RATE_LIMIT'
     else code = 'AI_ERROR'
     return Response.json({ error: code }, { status: 503 })
+  }
+
+  const fortune: DailyFortune = {
+    zodiac: resolvedZodiac,
+    date,
+    ...textContent,
+    ...numbers,
+    personalized: !!sajuContext,
   }
 
   // ── Redis 캐시 저장 ────────────────────────────────────────────────────
