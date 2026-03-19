@@ -50,7 +50,7 @@ const ELEMENT_BG_LIGHT: Record<string, string> = {
   수: 'bg-blue-100',
 }
 
-type Status = 'idle' | 'loading' | 'done' | 'error'
+type Status = 'idle' | 'loading' | 'streaming' | 'done' | 'error'
 
 // ────────────────────────────────────────────────────────────────────────────
 // 서브 컴포넌트: 사주 기둥 카드
@@ -67,9 +67,7 @@ function PillarCard({
   return (
     <div className="flex flex-col items-center gap-1 rounded-xl border border-border bg-card px-2 py-3">
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
-      <span
-        className={`text-2xl font-bold ${ELEMENT_TEXT_COLORS[elem] ?? 'text-foreground'}`}
-      >
+      <span className={`text-2xl font-bold ${ELEMENT_TEXT_COLORS[elem] ?? 'text-foreground'}`}>
         {pillar.stem}
       </span>
       <span className="text-xl font-semibold text-foreground">{pillar.branch}</span>
@@ -121,7 +119,10 @@ function ElementBalance({ balance }: { balance: SajuResult['elementBalance'] }) 
 // 서브 컴포넌트: 십신
 // ────────────────────────────────────────────────────────────────────────────
 
-function TenGodsSection({ tenGods, fourPillars }: {
+function TenGodsSection({
+  tenGods,
+  fourPillars,
+}: {
   tenGods: SajuResult['tenGods']
   fourPillars: SajuResult['fourPillars']
 }) {
@@ -139,7 +140,8 @@ function TenGodsSection({ tenGods, fourPillars }: {
           <div key={label} className="flex flex-col items-center gap-1">
             <span className="text-[10px] text-muted-foreground">{label}</span>
             <span className="text-sm font-semibold text-foreground">
-              {pillar!.stem}{pillar!.branch}
+              {pillar!.stem}
+              {pillar!.branch}
             </span>
             <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-700">
               {god}
@@ -155,7 +157,10 @@ function TenGodsSection({ tenGods, fourPillars }: {
 // 서브 컴포넌트: 십이운성
 // ────────────────────────────────────────────────────────────────────────────
 
-function SipIunSeongSection({ sipIunSeong, fourPillars }: {
+function SipIunSeongSection({
+  sipIunSeong,
+  fourPillars,
+}: {
   sipIunSeong: SajuResult['sipIunSeong']
   fourPillars: SajuResult['fourPillars']
 }) {
@@ -174,7 +179,8 @@ function SipIunSeongSection({ sipIunSeong, fourPillars }: {
           <div key={label} className="flex flex-col items-center gap-1">
             <span className="text-[10px] text-muted-foreground">{label}</span>
             <span className="text-xs text-foreground">
-              {pillar!.stem}{pillar!.branch}
+              {pillar!.stem}
+              {pillar!.branch}
             </span>
             <span className="text-[10px] font-medium text-amber-700">{stage}</span>
           </div>
@@ -185,7 +191,7 @@ function SipIunSeongSection({ sipIunSeong, fourPillars }: {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// 서브 컴포넌트: 공망 & 대운
+// 서브 컴포넌트: 공망
 // ────────────────────────────────────────────────────────────────────────────
 
 function GongMangBadge({ gongMang }: { gongMang: SajuResult['gongMang'] }) {
@@ -206,6 +212,10 @@ function GongMangBadge({ gongMang }: { gongMang: SajuResult['gongMang'] }) {
   )
 }
 
+// ────────────────────────────────────────────────────────────────────────────
+// 서브 컴포넌트: 대운
+// ────────────────────────────────────────────────────────────────────────────
+
 function DaewoonSection({ daewoon }: { daewoon: SajuResult['daewoon'] }) {
   const items = daewoon.slice(0, 6)
   return (
@@ -225,11 +235,97 @@ function DaewoonSection({ daewoon }: { daewoon: SajuResult['daewoon'] }) {
               {BRANCHES[dw.branchIndex].char}
             </span>
             <span className="text-[10px] text-muted-foreground">
-              {STEMS[dw.stemIndex].korean}{BRANCHES[dw.branchIndex].korean}
+              {STEMS[dw.stemIndex].korean}
+              {BRANCHES[dw.branchIndex].korean}
             </span>
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// 서브 컴포넌트: AI 해석 텍스트
+// ────────────────────────────────────────────────────────────────────────────
+
+function AiInterpretation({
+  text,
+  isStreaming,
+}: {
+  text: string
+  isStreaming: boolean
+}) {
+  // 섹션 아이콘 매핑
+  const sectionIcons: Record<string, string> = {
+    연애운: '💕',
+    결혼운: '💍',
+    금전운: '💰',
+    직업운: '💼',
+    건강운: '🌿',
+    '이 사주의 핵심 조언': '✨',
+  }
+
+  return (
+    <div className="rounded-xl border border-indigo-100 bg-gradient-to-b from-indigo-50/50 to-white p-4">
+      <div className="mb-4 flex items-center gap-2">
+        <span className="text-sm font-bold text-indigo-700">사주 해석</span>
+        {isStreaming && (
+          <Loader2 size={12} className="ml-auto animate-spin text-indigo-400" />
+        )}
+      </div>
+
+      {text ? (
+        <div className="flex flex-col gap-4">
+          {text.split('\n').reduce<{ sections: { title: string; lines: string[] }[]; current: { title: string; lines: string[] } | null }>(
+            (acc, line) => {
+              if (line.startsWith('## ')) {
+                if (acc.current) acc.sections.push(acc.current)
+                acc.current = { title: line.slice(3).trim(), lines: [] }
+              } else if (acc.current && line.trim()) {
+                acc.current.lines.push(line)
+              }
+              return acc
+            },
+            { sections: [], current: null },
+          ).sections.concat(
+            /* flush last section */
+            (() => {
+              const lines = text.split('\n')
+              let current: { title: string; lines: string[] } | null = null
+              for (const line of lines) {
+                if (line.startsWith('## ')) {
+                  current = { title: line.slice(3).trim(), lines: [] }
+                } else if (current && line.trim()) {
+                  current.lines.push(line)
+                }
+              }
+              return current ? [current] : []
+            })()
+          ).filter((s, i, arr) =>
+            // 중복 제거: 같은 title의 마지막 것만 남김
+            arr.findLastIndex((x) => x.title === s.title) === i
+          ).map((section) => (
+            <div key={section.title} className="rounded-lg bg-white/80 p-3 shadow-sm">
+              <div className="mb-1.5 flex items-center gap-1.5">
+                <span className="text-base">{sectionIcons[section.title] ?? '📌'}</span>
+                <span className="text-sm font-bold text-indigo-700">{section.title}</span>
+              </div>
+              <p className="text-sm leading-relaxed text-foreground">
+                {section.lines.join(' ')}
+              </p>
+            </div>
+          ))}
+          {isStreaming && (
+            <span className="inline-block h-4 w-0.5 animate-pulse bg-indigo-400" />
+          )}
+        </div>
+      ) : (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 size={14} className="animate-spin" />
+          <span>사주를 해석하는 중이에요...</span>
+        </div>
+      )}
     </div>
   )
 }
@@ -247,6 +343,7 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
 
   const [status, setStatus] = useState<Status>('idle')
   const [sajuResult, setSajuResult] = useState<SajuResult | null>(null)
+  const [aiText, setAiText] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
@@ -261,6 +358,7 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
 
     if (isNaN(y) || y < 1900 || y > 2020) return
 
+    setAiText('')
     setErrorMsg('')
     setSajuResult(null)
     setStatus('loading')
@@ -272,12 +370,48 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
         body: JSON.stringify({ year: y, month: m, day: d, hour, gender }),
       })
 
-      if (!res.ok) {
+      if (!res.ok || !res.body) {
         throw new Error(`서버 오류 (${res.status})`)
       }
 
-      const json = await res.json() as { data: SajuResult }
-      setSajuResult(json.data)
+      const reader = res.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          const raw = line.slice(6).trim()
+          if (raw === '[DONE]') {
+            setStatus('done')
+            continue
+          }
+          try {
+            const evt = JSON.parse(raw) as
+              | { type: 'saju'; payload: SajuResult }
+              | { type: 'text'; text: string }
+              | { type: 'ai_error'; message: string }
+
+            if (evt.type === 'saju') {
+              setSajuResult(evt.payload)
+              setStatus('streaming')
+            } else if (evt.type === 'text') {
+              setAiText((prev) => prev + evt.text)
+            }
+            // ai_error는 무시 (사주 결과는 이미 표시됨)
+          } catch {
+            // JSON 파싱 오류 무시
+          }
+        }
+      }
+
       setStatus('done')
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : '분석 중 오류가 발생했어요.')
@@ -287,6 +421,7 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
 
   function handleReset() {
     setSajuResult(null)
+    setAiText('')
     setErrorMsg('')
     setStatus('idle')
     setIsSaved(false)
@@ -299,7 +434,7 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
       const res = await fetch('/api/readings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sajuResult }),
+        body: JSON.stringify({ sajuResult, aiText }),
       })
       if (res.ok) setIsSaved(true)
     } finally {
@@ -314,7 +449,7 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
         <div>
           <h1 className="text-xl font-bold">사주 분석</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            생년월일을 입력하면 사주팔자를 분석해드려요
+            생년월일을 입력하면 사주팔자와 운세 해석을 알려드려요
           </p>
         </div>
 
@@ -445,7 +580,7 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
     )
   }
 
-  // ── 로딩 ─────────────────────────────────────────────────────────────────
+  // ── 로딩 (사주 계산 중) ───────────────────────────────────────────────────
   if (status === 'loading') {
     return (
       <div className="flex h-64 flex-col items-center justify-center gap-3">
@@ -476,7 +611,7 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
     )
   }
 
-  // ── 결과 ─────────────────────────────────────────────────────────────────
+  // ── 결과 + 스트리밍 ───────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-4 px-4 py-5">
       {/* 헤더 */}
@@ -542,38 +677,53 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
           {/* 대운 */}
           <DaewoonSection daewoon={sajuResult.daewoon} />
 
-          {/* 저장 버튼 */}
-          <div className="rounded-xl border border-border bg-card p-4">
-            {isLoggedIn ? (
-              isSaved ? (
-                <div className="flex items-center justify-center gap-2 text-sm font-medium text-green-600">
-                  <BookmarkCheck size={16} />
-                  보관함에 저장되었어요
-                </div>
-              ) : (
-                <button
-                  onClick={handleSave}
-                  disabled={isSaving}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-                >
-                  {isSaving ? (
-                    <Loader2 size={15} className="animate-spin" />
-                  ) : (
-                    <BookmarkCheck size={15} />
-                  )}
-                  {isSaving ? '저장 중...' : '보관함에 저장'}
-                </button>
-              )
-            ) : (
-              <Link
-                href="/login?callbackUrl=/saju"
-                className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-              >
-                <LogIn size={14} />
-                로그인하면 분석 결과를 저장할 수 있어요
-              </Link>
-            )}
+          {/* 구분선 */}
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-xs text-muted-foreground">운세 해석</span>
+            <div className="h-px flex-1 bg-border" />
           </div>
+
+          {/* AI 해석 */}
+          <AiInterpretation
+            text={aiText}
+            isStreaming={status === 'streaming'}
+          />
+
+          {/* 저장 버튼 — 해석 완료 후 표시 */}
+          {status === 'done' && (
+            <div className="rounded-xl border border-border bg-card p-4">
+              {isLoggedIn ? (
+                isSaved ? (
+                  <div className="flex items-center justify-center gap-2 text-sm font-medium text-green-600">
+                    <BookmarkCheck size={16} />
+                    보관함에 저장되었어요
+                  </div>
+                ) : (
+                  <button
+                    onClick={handleSave}
+                    disabled={isSaving}
+                    className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                  >
+                    {isSaving ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <BookmarkCheck size={15} />
+                    )}
+                    {isSaving ? '저장 중...' : '보관함에 저장'}
+                  </button>
+                )
+              ) : (
+                <Link
+                  href="/login?callbackUrl=/saju"
+                  className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <LogIn size={14} />
+                  로그인하면 분석 결과를 저장할 수 있어요
+                </Link>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>
