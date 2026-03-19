@@ -41,69 +41,112 @@ function ScoreBar({ score }: { score: number }) {
 
 function FortuneCard({ fortune }: { fortune: DailyFortune }) {
   const zodiacData = ZODIACS.find((z) => z.name === fortune.zodiac)
+  const percentile = Math.max(5, Math.round((1 - fortune.score.overall / 100) * 100))
 
   return (
     <div className="flex flex-col gap-4">
-      {/* 헤더 */}
-      <div className="flex items-center gap-3 rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 p-4 text-white">
-        <span className="text-4xl">{zodiacData?.emoji}</span>
-        <div>
-          <p className="text-xs font-medium opacity-80">{fortune.date} 오늘의 운세</p>
-          <p className="text-xl font-bold">{fortune.zodiac}띠</p>
-          {fortune.personalized && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold mt-1">
-              <Sparkles size={9} /> 사주 맞춤 운세
+
+      {/* ── 헤더 ── */}
+      <div className="rounded-2xl bg-gradient-to-br from-amber-400 to-orange-500 p-4 text-white">
+        <div className="flex items-start gap-3">
+          <span className="text-4xl">{zodiacData?.emoji}</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs opacity-80">{fortune.date} 오늘의 운세</p>
+            <p className="text-xl font-bold">{fortune.zodiac}띠</p>
+            {fortune.personalized && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold mt-1">
+                <Sparkles size={9} /> 사주 맞춤 운세
+              </span>
+            )}
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-3xl font-bold leading-none">{fortune.score.overall}</p>
+            <p className="text-xs opacity-70 mt-0.5">/ 100점</p>
+            <span className="mt-1.5 inline-block rounded-full bg-white/25 px-2 py-0.5 text-[11px] font-semibold">
+              상위 {percentile}%
             </span>
-          )}
-        </div>
-        <div className="ml-auto text-right">
-          <p className="text-2xl font-bold">{fortune.score.overall}</p>
-          <p className="text-xs opacity-80">/ 100점</p>
+          </div>
         </div>
       </div>
 
-      {/* 점수 요약 */}
-      <div className="grid grid-cols-2 gap-2">
-        {SCORE_LABELS.map(({ key, label, emoji }) => (
-          <div key={key} className="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-3">
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <span className="text-sm">{emoji}</span>
-              <span className="text-xs font-medium">{label}</span>
+      {/* ── 오늘의 핵심 ── */}
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3.5">
+        <p className="text-[11px] font-bold text-amber-500 mb-1">💡 오늘의 핵심</p>
+        <p className="text-[15px] font-bold text-amber-900 leading-snug">"{fortune.todaySummary}"</p>
+      </div>
+
+      {/* ── 행동 가이드 ── */}
+      <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-3">
+        <p className="text-sm font-bold">⚡ 오늘 행동 가이드</p>
+        {[
+          { icon: '📋', label: '중요한 결정', text: fortune.actionGuide.decision },
+          { icon: '👥', label: '인간관계', text: fortune.actionGuide.relationship },
+          { icon: '💰', label: '금전', text: fortune.actionGuide.money },
+        ].map(({ icon, label, text }) => (
+          <div key={label} className="flex gap-2.5">
+            <span className="text-base shrink-0 mt-0.5">{icon}</span>
+            <div>
+              <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
+              <p className="text-sm leading-relaxed mt-0.5">{text}</p>
             </div>
-            <ScoreBar score={fortune.score[key]} />
           </div>
         ))}
       </div>
 
-      {/* 운세 내용 */}
-      {[
-        { key: 'overall', label: '전체운', emoji: '⭐' },
-        { key: 'love', label: '사랑운', emoji: '❤️' },
-        { key: 'money', label: '재물운', emoji: '💰' },
-        { key: 'health', label: '건강운', emoji: '💪' },
-      ].map(({ key, label, emoji }) => (
-        <div key={key} className="rounded-xl border border-border bg-card p-4">
-          <p className="mb-2 flex items-center gap-1.5 text-sm font-semibold">
-            <span>{emoji}</span>
-            {label}
-          </p>
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            {fortune[key as keyof Pick<DailyFortune, 'overall' | 'love' | 'money' | 'health'>]}
-          </p>
-        </div>
-      ))}
+      {/* ── 시간대별 운세 ── */}
+      <div className="flex flex-col gap-2">
+        <p className="text-sm font-bold">⏰ 시간대별 운세</p>
+        {[
+          { icon: '🌅', label: '오전  06 ~ 12시', text: fortune.timeFortune.morning },
+          { icon: '🌤', label: '오후  12 ~ 18시', text: fortune.timeFortune.afternoon },
+          { icon: '🌙', label: '저녁  18 ~ 24시', text: fortune.timeFortune.evening },
+        ].map(({ icon, label, text }) => (
+          <div key={label} className="flex gap-3 rounded-xl border border-border bg-card p-3">
+            <span className="text-xl shrink-0">{icon}</span>
+            <div>
+              <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
+              <p className="text-sm leading-relaxed mt-0.5">{text}</p>
+            </div>
+          </div>
+        ))}
+      </div>
 
-      {/* 행운 정보 */}
+      {/* ── 세부 운세 ── */}
+      <div className="flex flex-col gap-3">
+        <p className="text-sm font-bold">📊 세부 운세</p>
+        {SCORE_LABELS.map(({ key, label, emoji }) => (
+          <div key={key} className="rounded-xl border border-border bg-card p-4">
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-base">{emoji}</span>
+                <span className="text-sm font-semibold">{label}</span>
+              </div>
+              <span className="text-sm font-bold tabular-nums">{fortune.score[key]}점</span>
+            </div>
+            <ScoreBar score={fortune.score[key]} />
+            <p className="text-sm leading-relaxed text-muted-foreground mt-3">
+              {fortune[key as keyof Pick<DailyFortune, 'overall' | 'love' | 'money' | 'health'>]}
+            </p>
+            {fortune.reason[key as keyof typeof fortune.reason] && (
+              <p className="mt-2 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                💬 {fortune.reason[key as keyof typeof fortune.reason]}
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* ── 행운 정보 ── */}
       <div className="flex gap-3">
         <div className="flex flex-1 items-center gap-3 rounded-xl border border-border bg-card p-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">색</div>
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-bold text-indigo-700">색</div>
           <div>
             <p className="text-[10px] text-muted-foreground">행운의 색</p>
             <p className="text-sm font-semibold">{fortune.luckyColor}</p>
           </div>
         </div>
         <div className="flex flex-1 items-center gap-3 rounded-xl border border-border bg-card p-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-100 text-sm font-bold text-amber-700">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-bold text-amber-700">
             {fortune.luckyNumber}
           </div>
           <div>
@@ -113,7 +156,7 @@ function FortuneCard({ fortune }: { fortune: DailyFortune }) {
         </div>
       </div>
 
-      {/* 로또 번호 — 접이식 */}
+      {/* ── 로또 ── */}
       {fortune.lottoSets && <LottoSection sets={fortune.lottoSets} />}
     </div>
   )

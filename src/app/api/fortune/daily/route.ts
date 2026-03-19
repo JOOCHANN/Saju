@@ -16,14 +16,36 @@ export const dynamic = 'force-dynamic'
 export interface DailyFortune {
   zodiac: string
   date: string
+  // 핵심 요약
+  todaySummary: string
+  // 행동 가이드
+  actionGuide: {
+    decision: string      // 중요한 결정/업무
+    relationship: string  // 인간관계
+    money: string         // 금전/소비
+  }
+  // 시간대별 운세
+  timeFortune: {
+    morning: string    // 오전 06~12시
+    afternoon: string  // 오후 12~18시
+    evening: string    // 저녁 18~24시
+  }
+  // 세부 운세
   overall: string
   love: string
   money: string
   health: string
+  // 점수 이유
+  reason: {
+    overall: string
+    love: string
+    money: string
+    health: string
+  }
   score: { overall: number; love: number; money: number; health: number }
   luckyColor: string
   luckyNumber: number
-  lottoSets: number[][]   // 5세트 × 6개 (정렬됨)
+  lottoSets: number[][]
   personalized?: boolean
 }
 
@@ -102,12 +124,14 @@ function computeFortuneNumbers(seed: number) {
 // AI 운세 텍스트 생성 (점수·색·번호는 서버에서 직접 계산 후 전달)
 // ────────────────────────────────────────────────────────────────────────────
 
+type FortuneTextResult = Pick<DailyFortune, 'todaySummary' | 'actionGuide' | 'timeFortune' | 'overall' | 'love' | 'money' | 'health' | 'reason'>
+
 async function generateFortuneText(
   zodiac: string,
   date: string,
   numbers: ReturnType<typeof computeFortuneNumbers>,
   sajuContext?: string,
-): Promise<Pick<DailyFortune, 'overall' | 'love' | 'money' | 'health'>> {
+): Promise<FortuneTextResult> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error('AI_KEY_MISSING')
 
@@ -118,35 +142,49 @@ async function generateFortuneText(
   })
 
   const { score } = numbers
-  const scoreDesc = (s: number) => s >= 80 ? '매우 좋음' : s >= 60 ? '좋음' : s >= 40 ? '보통' : s >= 20 ? '주의 필요' : '어려운 날'
+  const scoreDesc = (s: number) => s >= 80 ? '매우 좋음' : s >= 60 ? '좋음' : s >= 40 ? '보통' : '주의 필요'
+  const scoreContext = `점수 — 전체운 ${score.overall}(${scoreDesc(score.overall)}), 사랑운 ${score.love}(${scoreDesc(score.love)}), 재물운 ${score.money}(${scoreDesc(score.money)}), 건강운 ${score.health}(${scoreDesc(score.health)})`
 
-  const scoreContext = `오늘 점수: 전체운 ${score.overall}(${scoreDesc(score.overall)}), 사랑운 ${score.love}(${scoreDesc(score.love)}), 재물운 ${score.money}(${scoreDesc(score.money)}), 건강운 ${score.health}(${scoreDesc(score.health)})`
+  const sajuLine = sajuContext ? `\n사주 정보:\n${sajuContext}\n` : ''
 
-  const prompt = sajuContext
-    ? `오늘(${date}) 아래 사주를 가진 ${zodiac}띠 사람의 운세 문장을 JSON으로 작성해주세요.
-
-사주 정보:
-${sajuContext}
-
+  const prompt = `오늘(${date}) ${zodiac}띠 운세를 아래 JSON 형식으로 작성해주세요.${sajuLine}
 ${scoreContext}
-위 점수에 맞게 각 운세 2~3문장을 작성하세요. 점수가 낮은 항목은 주의사항 위주로, 높은 항목은 긍정적으로 서술하세요.
-사주 특성(출생연도 간지, 일간 기질, 오행 분포)을 반영한 개인화된 내용으로 작성하세요.
 
-{"overall":"전체운 2~3문장","love":"사랑운 2~3문장","money":"재물운 2~3문장","health":"건강운 2~3문장"}
+작성 원칙:
+- "좋습니다/주의하세요" 같은 추상적 문장 금지
+- 반드시 "오늘 구체적으로 뭘 해야 하는지" 행동 중심으로 서술
+- 낮은 점수 항목도 불안 조장 대신 구체적 행동으로 전환
+- 점수에 맞게 내용 조율 (낮은 항목 → 주의/전환 행동, 높은 항목 → 기회/적극 행동)
+${sajuContext ? '- 사주 특성을 반영해 다른 띠와 차별화된 개인화 내용 작성' : ''}
 
-반드시 위 JSON 형식만 응답하고 다른 텍스트는 포함하지 마세요.`
-    : `오늘(${date}) ${zodiac}띠 운세 문장을 JSON으로 작성해주세요.
-
-${scoreContext}
-위 점수에 맞게 각 운세 2~3문장을 자연스러운 한국어로 작성하세요. 점수가 낮은 항목은 주의사항 위주로, 높은 항목은 긍정적으로 서술하세요.
-
-{"overall":"전체운 2~3문장","love":"사랑운 2~3문장","money":"재물운 2~3문장","health":"건강운 2~3문장"}
-
-반드시 위 JSON 형식만 응답하고 다른 텍스트나 마크다운 코드 블록은 포함하지 마세요.`
+반드시 아래 JSON만 응답 (마크다운/코드블록 금지):
+{
+  "todaySummary": "오늘 핵심 한 줄 (20자 이내, 구체적 상황/행동 포함)",
+  "actionGuide": {
+    "decision": "오늘 중요한 결정·업무 관련 구체적 조언 2문장",
+    "relationship": "오늘 인간관계 관련 구체적 조언 2문장",
+    "money": "오늘 금전·소비 관련 구체적 조언 2문장"
+  },
+  "timeFortune": {
+    "morning": "오전(06~12시) 운세 + 추천 행동 2문장",
+    "afternoon": "오후(12~18시) 운세 + 추천 행동 2문장",
+    "evening": "저녁(18~24시) 운세 + 추천 행동 2문장"
+  },
+  "overall": "전체운 상세 설명 3문장",
+  "love": "사랑운 상세 설명 3문장 (구체적 상황 포함)",
+  "money": "재물운 상세 설명 3문장 (구체적 행동 포함)",
+  "health": "건강운 상세 설명 3문장 (구체적 관리법 포함)",
+  "reason": {
+    "overall": "전체운 이 점수인 이유 1문장 (~때문에 형식)",
+    "love": "사랑운 이 점수인 이유 1문장",
+    "money": "재물운 이 점수인 이유 1문장",
+    "health": "건강운 이 점수인 이유 1문장"
+  }
+}`
 
   const message = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
-    max_tokens: 800,
+    max_tokens: 2000,
     messages: [{ role: 'user', content: prompt }],
   })
 
@@ -154,12 +192,33 @@ ${scoreContext}
   const jsonMatch = text.match(/\{[\s\S]*\}/)
   if (!jsonMatch) throw new Error('AI_PARSE_ERROR')
 
-  const parsed = JSON.parse(jsonMatch[0]) as Record<string, string>
+  const p = JSON.parse(jsonMatch[0]) as Record<string, unknown>
+  const ag = (p.actionGuide ?? {}) as Record<string, unknown>
+  const tf = (p.timeFortune ?? {}) as Record<string, unknown>
+  const rs = (p.reason ?? {}) as Record<string, unknown>
+
   return {
-    overall: String(parsed.overall ?? ''),
-    love: String(parsed.love ?? ''),
-    money: String(parsed.money ?? ''),
-    health: String(parsed.health ?? ''),
+    todaySummary: String(p.todaySummary ?? ''),
+    actionGuide: {
+      decision: String(ag.decision ?? ''),
+      relationship: String(ag.relationship ?? ''),
+      money: String(ag.money ?? ''),
+    },
+    timeFortune: {
+      morning: String(tf.morning ?? ''),
+      afternoon: String(tf.afternoon ?? ''),
+      evening: String(tf.evening ?? ''),
+    },
+    overall: String(p.overall ?? ''),
+    love: String(p.love ?? ''),
+    money: String(p.money ?? ''),
+    health: String(p.health ?? ''),
+    reason: {
+      overall: String(rs.overall ?? ''),
+      love: String(rs.love ?? ''),
+      money: String(rs.money ?? ''),
+      health: String(rs.health ?? ''),
+    },
   }
 }
 
@@ -201,7 +260,7 @@ export async function GET(request: Request) {
 
     if (month && day) {
       // 생년월일 완전 입력 — 사주 기반 개인화
-      cacheKey = `fortune:v2:${date}:birth:${year}-${month}-${day}`
+      cacheKey = `fortune:v3:${date}:birth:${year}-${month}-${day}`
       seed = makeSeed(date, year * 10000 + month * 100 + day)
 
       try {
@@ -220,12 +279,12 @@ export async function GET(request: Request) {
       }
     } else {
       // 연도만 입력 — 띠 기반 (연도로 시드 차별화)
-      cacheKey = `fortune:v2:${date}:birth:${year}`
+      cacheKey = `fortune:v3:${date}:birth:${year}`
       seed = makeSeed(date, year)
     }
   } else if (zodiac && isValidZodiac(zodiac)) {
     resolvedZodiac = zodiac
-    cacheKey = `fortune:v2:${date}:${zodiac}`
+    cacheKey = `fortune:v3:${date}:${zodiac}`
     // 띠 모드 — 시드: 날짜 + 띠 인덱스
     const zodiacIdx = ZODIACS.findIndex((z) => z.name === zodiac)
     seed = makeSeed(date, zodiacIdx + 1)
@@ -247,7 +306,7 @@ export async function GET(request: Request) {
   const numbers = computeFortuneNumbers(seed)
 
   // ── AI 텍스트 생성 ──────────────────────────────────────────────────────
-  let textContent: Pick<DailyFortune, 'overall' | 'love' | 'money' | 'health'>
+  let textContent: FortuneTextResult
   try {
     textContent = await generateFortuneText(resolvedZodiac, date, numbers, sajuContext)
   } catch (err) {
