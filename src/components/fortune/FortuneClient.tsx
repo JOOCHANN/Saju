@@ -21,16 +21,19 @@ const SCORE_LABELS: Array<{ key: keyof DailyFortune['score']; label: string; emo
 // ────────────────────────────────────────────────────────────────────────────
 
 function ScoreBar({ score }: { score: number }) {
+  const color =
+    score >= 80 ? 'bg-green-500' :
+    score >= 60 ? 'bg-amber-400' :
+    score >= 40 ? 'bg-orange-400' : 'bg-red-400'
   return (
-    <div className="flex gap-0.5">
-      {Array.from({ length: 5 }, (_, i) => (
+    <div className="flex items-center gap-2">
+      <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
         <div
-          key={i}
-          className={`h-2 w-5 rounded-full transition-all ${
-            i < score ? 'bg-amber-400' : 'bg-muted'
-          }`}
+          className={`h-full rounded-full transition-all duration-700 ${color}`}
+          style={{ width: `${score}%` }}
         />
-      ))}
+      </div>
+      <span className="text-xs font-bold text-foreground w-8 text-right">{score}점</span>
     </div>
   )
 }
@@ -54,7 +57,7 @@ function FortuneCard({ fortune }: { fortune: DailyFortune }) {
         </div>
         <div className="ml-auto text-right">
           <p className="text-2xl font-bold">{fortune.score.overall}</p>
-          <p className="text-xs opacity-80">/ 5점</p>
+          <p className="text-xs opacity-80">/ 100점</p>
         </div>
       </div>
 
@@ -62,12 +65,9 @@ function FortuneCard({ fortune }: { fortune: DailyFortune }) {
       <div className="grid grid-cols-2 gap-2">
         {SCORE_LABELS.map(({ key, label, emoji }) => (
           <div key={key} className="flex flex-col gap-1.5 rounded-xl border border-border bg-card p-3">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1.5 mb-1.5">
               <span className="text-sm">{emoji}</span>
               <span className="text-xs font-medium">{label}</span>
-              <span className="ml-auto text-xs font-semibold text-amber-500">
-                {fortune.score[key]}점
-              </span>
             </div>
             <ScoreBar score={fortune.score[key]} />
           </div>

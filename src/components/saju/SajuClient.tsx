@@ -428,7 +428,7 @@ function DaewoonSection({ daewoon, birthYear }: { daewoon: SajuResult['daewoon']
 // AI 해석 섹션
 // ────────────────────────────────────────────────────────────────────────────
 
-interface AiSection { title: string; summary: string; bullets: string[]; body: string[] }
+interface AiSection { title: string; summary: string; score: number | null; bullets: string[]; body: string[] }
 
 function parseAiText(text: string): AiSection[] {
   const sections: AiSection[] = []
@@ -436,16 +436,33 @@ function parseAiText(text: string): AiSection[] {
   for (const line of text.split('\n')) {
     if (line.startsWith('## ')) {
       if (cur) sections.push(cur)
-      cur = { title: line.slice(3).trim(), summary: '', bullets: [], body: [] }
+      cur = { title: line.slice(3).trim(), summary: '', score: null, bullets: [], body: [] }
     } else if (cur) {
-      const m = line.match(/^\*\*요약\*\*[:：]\s*(.+)/)
-      if (m) cur.summary = m[1].trim()
+      const mSummary = line.match(/^\*\*요약\*\*[:：]\s*(.+)/)
+      const mScore = line.match(/^\*\*점수\*\*[:：]\s*(\d+)/)
+      if (mSummary) cur.summary = mSummary[1].trim()
+      else if (mScore) cur.score = Math.min(100, Math.max(1, parseInt(mScore[1])))
       else if (line.startsWith('- ')) cur.bullets.push(line.slice(2).trim())
       else if (line.trim()) cur.body.push(line.trim())
     }
   }
   if (cur) sections.push(cur)
   return sections
+}
+
+function AiScoreBar({ score, themeColor }: { score: number; themeColor: string }) {
+  const color =
+    score >= 80 ? 'bg-green-500' :
+    score >= 60 ? 'bg-amber-400' :
+    score >= 40 ? 'bg-orange-400' : 'bg-red-400'
+  return (
+    <div className="flex items-center gap-2 mt-1.5">
+      <div className={`h-1.5 flex-1 overflow-hidden rounded-full ${themeColor}`}>
+        <div className={`h-full rounded-full transition-all duration-700 ${color}`} style={{ width: `${score}%` }} />
+      </div>
+      <span className="text-xs font-bold w-8 text-right">{score}점</span>
+    </div>
+  )
 }
 
 const AI_THEME: Record<string, { bg: string; border: string; title: string; badge: string; icon: string }> = {
@@ -470,12 +487,20 @@ function AiSectionCard({ section, isLast, isStreaming }: {
         className="flex w-full items-start gap-3 px-4 py-3.5 text-left">
         <span className="text-xl shrink-0">{theme.icon}</span>
         <div className="flex-1 min-w-0">
-          <span className={`text-sm font-bold ${theme.title}`}>{section.title}</span>
+          <div className="flex items-center gap-2">
+            <span className={`text-sm font-bold ${theme.title}`}>{section.title}</span>
+            {section.score !== null && (
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${theme.badge}`}>{section.score}점</span>
+            )}
+          </div>
           {section.summary ? (
             <p className="mt-0.5 text-xs font-medium text-foreground/80 leading-snug">{section.summary}</p>
           ) : isStreaming && isLast ? (
             <span className="inline-block h-3 w-0.5 animate-pulse bg-current opacity-60 ml-1" />
           ) : null}
+          {section.score !== null && !isCoreAdvice && (
+            <AiScoreBar score={section.score} themeColor="bg-muted/60" />
+          )}
         </div>
         <ChevronDown size={15} className={`mt-1 shrink-0 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>

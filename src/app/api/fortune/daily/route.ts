@@ -52,16 +52,16 @@ ${sajuContext}
 
 각 운세는 2~3문장으로, 위 사주 특성(일간 기질, 오행 분포)을 반영한 개인화된 내용으로 작성하세요.
 긍정적이되 구체적이고 실용적인 조언을 포함하세요.
-점수는 1~5 사이 정수, 행운 색상은 한국어 색상명, 행운 번호는 1~99 사이 정수로 설정하세요.
+점수는 1~100 사이 정수, 행운 색상은 한국어 색상명, 행운 번호는 1~99 사이 정수로 설정하세요.
 
-{"overall":"전체운","love":"사랑운","money":"재물운","health":"건강운","score":{"overall":3,"love":3,"money":3,"health":3},"luckyColor":"파란색","luckyNumber":7}
+{"overall":"전체운","love":"사랑운","money":"재물운","health":"건강운","score":{"overall":75,"love":70,"money":65,"health":80},"luckyColor":"파란색","luckyNumber":7}
 
 반드시 위 JSON 형식만 응답하고 다른 텍스트는 포함하지 마세요.`
     : `오늘(${date}) ${zodiac}띠 운세를 아래 JSON 형식으로 작성해주세요.
 각 운세는 2~3문장, 자연스러운 한국어로 긍정적이되 구체적으로 서술하세요.
-점수는 1~5 사이 정수, 행운 색상은 한국어 색상명, 행운 번호는 1~99 사이 정수로 설정하세요.
+점수는 1~100 사이 정수, 행운 색상은 한국어 색상명, 행운 번호는 1~99 사이 정수로 설정하세요.
 
-{"overall":"전체운","love":"사랑운","money":"재물운","health":"건강운","score":{"overall":3,"love":3,"money":3,"health":3},"luckyColor":"파란색","luckyNumber":7}
+{"overall":"전체운","love":"사랑운","money":"재물운","health":"건강운","score":{"overall":75,"love":70,"money":65,"health":80},"luckyColor":"파란색","luckyNumber":7}
 
 반드시 위 JSON 형식만 응답하고 다른 텍스트나 마크다운 코드 블록은 포함하지 마세요.`
 
