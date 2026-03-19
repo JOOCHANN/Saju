@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { BookmarkCheck, ChevronDown, Loader2, LogIn, RotateCcw, Sparkles } from 'lucide-react'
+import { BookmarkCheck, ChevronDown, Loader2, LogIn, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
 import type { SajuResult } from '@/lib/saju'
-import { ELEMENT_NAMES } from '@/lib/saju'
+import { BRANCHES, ELEMENT_NAMES, STEMS } from '@/lib/saju'
 
 // ────────────────────────────────────────────────────────────────────────────
 // 상수
@@ -50,7 +50,7 @@ const ELEMENT_BG_LIGHT: Record<string, string> = {
   수: 'bg-blue-100',
 }
 
-type Status = 'idle' | 'streaming' | 'done' | 'error'
+type Status = 'idle' | 'loading' | 'done' | 'error'
 
 // ────────────────────────────────────────────────────────────────────────────
 // 서브 컴포넌트: 사주 기둥 카드
@@ -118,6 +118,123 @@ function ElementBalance({ balance }: { balance: SajuResult['elementBalance'] }) 
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// 서브 컴포넌트: 십신
+// ────────────────────────────────────────────────────────────────────────────
+
+function TenGodsSection({ tenGods, fourPillars }: {
+  tenGods: SajuResult['tenGods']
+  fourPillars: SajuResult['fourPillars']
+}) {
+  const items = [
+    { label: '年柱', god: tenGods.year, pillar: fourPillars.year },
+    { label: '月柱', god: tenGods.month, pillar: fourPillars.month },
+    { label: '時柱', god: tenGods.hour, pillar: fourPillars.hour },
+  ].filter((item) => item.god !== null && item.pillar !== null)
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <p className="mb-3 text-xs font-semibold text-muted-foreground">십신 (十神)</p>
+      <div className="flex gap-3">
+        {items.map(({ label, god, pillar }) => (
+          <div key={label} className="flex flex-col items-center gap-1">
+            <span className="text-[10px] text-muted-foreground">{label}</span>
+            <span className="text-sm font-semibold text-foreground">
+              {pillar!.stem}{pillar!.branch}
+            </span>
+            <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-700">
+              {god}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// 서브 컴포넌트: 십이운성
+// ────────────────────────────────────────────────────────────────────────────
+
+function SipIunSeongSection({ sipIunSeong, fourPillars }: {
+  sipIunSeong: SajuResult['sipIunSeong']
+  fourPillars: SajuResult['fourPillars']
+}) {
+  const items = [
+    { label: '年柱', stage: sipIunSeong.year, pillar: fourPillars.year },
+    { label: '月柱', stage: sipIunSeong.month, pillar: fourPillars.month },
+    { label: '日柱', stage: sipIunSeong.day, pillar: fourPillars.day },
+    { label: '時柱', stage: sipIunSeong.hour, pillar: fourPillars.hour },
+  ].filter((item) => item.stage !== null)
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <p className="mb-3 text-xs font-semibold text-muted-foreground">십이운성 (十二運星)</p>
+      <div className="grid grid-cols-4 gap-2">
+        {items.map(({ label, stage, pillar }) => (
+          <div key={label} className="flex flex-col items-center gap-1">
+            <span className="text-[10px] text-muted-foreground">{label}</span>
+            <span className="text-xs text-foreground">
+              {pillar!.stem}{pillar!.branch}
+            </span>
+            <span className="text-[10px] font-medium text-amber-700">{stage}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// 서브 컴포넌트: 공망 & 대운
+// ────────────────────────────────────────────────────────────────────────────
+
+function GongMangBadge({ gongMang }: { gongMang: SajuResult['gongMang'] }) {
+  return (
+    <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3">
+      <span className="text-xs text-muted-foreground">공망 (空亡)</span>
+      <div className="flex gap-1.5">
+        {gongMang.map((b, i) => (
+          <span
+            key={i}
+            className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600"
+          >
+            {BRANCHES[b].char} {BRANCHES[b].korean}
+          </span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function DaewoonSection({ daewoon }: { daewoon: SajuResult['daewoon'] }) {
+  const items = daewoon.slice(0, 6)
+  return (
+    <div className="rounded-xl border border-border bg-card p-4">
+      <p className="mb-3 text-xs font-semibold text-muted-foreground">대운 (大運)</p>
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {items.map((dw, i) => (
+          <div
+            key={i}
+            className="flex min-w-[52px] flex-col items-center gap-1 rounded-lg bg-muted/50 px-2 py-2"
+          >
+            <span className="text-[10px] text-muted-foreground">{dw.startAge}세~</span>
+            <span className="text-base font-bold text-foreground">
+              {STEMS[dw.stemIndex].char}
+            </span>
+            <span className="text-sm font-semibold text-foreground">
+              {BRANCHES[dw.branchIndex].char}
+            </span>
+            <span className="text-[10px] text-muted-foreground">
+              {STEMS[dw.stemIndex].korean}{BRANCHES[dw.branchIndex].korean}
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // 메인 컴포넌트
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -130,7 +247,6 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
 
   const [status, setStatus] = useState<Status>('idle')
   const [sajuResult, setSajuResult] = useState<SajuResult | null>(null)
-  const [aiText, setAiText] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
   const [isSaving, setIsSaving] = useState(false)
   const [isSaved, setIsSaved] = useState(false)
@@ -145,10 +261,9 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
 
     if (isNaN(y) || y < 1900 || y > 2020) return
 
-    setAiText('')
     setErrorMsg('')
     setSajuResult(null)
-    setStatus('streaming')
+    setStatus('loading')
 
     try {
       const res = await fetch('/api/saju/analyze', {
@@ -157,44 +272,12 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
         body: JSON.stringify({ year: y, month: m, day: d, hour, gender }),
       })
 
-      if (!res.ok || !res.body) {
+      if (!res.ok) {
         throw new Error(`서버 오류 (${res.status})`)
       }
 
-      const reader = res.body.getReader()
-      const decoder = new TextDecoder()
-      let buffer = ''
-
-      while (true) {
-        const { done, value } = await reader.read()
-        if (done) break
-
-        buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() ?? ''
-
-        for (const line of lines) {
-          if (!line.startsWith('data: ')) continue
-          const raw = line.slice(6).trim()
-          if (raw === '[DONE]') {
-            setStatus('done')
-            continue
-          }
-          try {
-            const evt = JSON.parse(raw) as
-              | { type: 'saju'; payload: SajuResult }
-              | { type: 'text'; text: string }
-              | { type: 'error'; message: string }
-
-            if (evt.type === 'saju') setSajuResult(evt.payload)
-            else if (evt.type === 'text') setAiText((prev) => prev + evt.text)
-            else if (evt.type === 'error') throw new Error(evt.message)
-          } catch {
-            // JSON 파싱 오류 무시
-          }
-        }
-      }
-
+      const json = await res.json() as { data: SajuResult }
+      setSajuResult(json.data)
       setStatus('done')
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : '분석 중 오류가 발생했어요.')
@@ -204,20 +287,19 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
 
   function handleReset() {
     setSajuResult(null)
-    setAiText('')
     setErrorMsg('')
     setStatus('idle')
     setIsSaved(false)
   }
 
   async function handleSave() {
-    if (!sajuResult || !aiText || isSaving || isSaved) return
+    if (!sajuResult || isSaving || isSaved) return
     setIsSaving(true)
     try {
       const res = await fetch('/api/readings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sajuResult, aiText }),
+        body: JSON.stringify({ sajuResult }),
       })
       if (res.ok) setIsSaved(true)
     } finally {
@@ -230,9 +312,9 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
     return (
       <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-4 py-5">
         <div>
-          <h1 className="text-xl font-bold">AI 사주 분석</h1>
+          <h1 className="text-xl font-bold">사주 분석</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            생년월일을 입력하면 AI가 사주팔자를 분석해드려요
+            생년월일을 입력하면 사주팔자를 분석해드려요
           </p>
         </div>
 
@@ -357,14 +439,44 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
           type="submit"
           className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80"
         >
-          <Sparkles size={16} />
-          AI 사주 분석하기
+          사주 분석하기
         </button>
       </form>
     )
   }
 
-  // ── 결과 / 로딩 ──────────────────────────────────────────────────────────
+  // ── 로딩 ─────────────────────────────────────────────────────────────────
+  if (status === 'loading') {
+    return (
+      <div className="flex h-64 flex-col items-center justify-center gap-3">
+        <Loader2 size={28} className="animate-spin text-indigo-500" />
+        <p className="text-sm text-muted-foreground">사주를 계산하는 중...</p>
+      </div>
+    )
+  }
+
+  // ── 에러 ─────────────────────────────────────────────────────────────────
+  if (status === 'error') {
+    return (
+      <div className="flex flex-col gap-4 px-4 py-5">
+        <div className="flex items-center justify-between">
+          <h1 className="text-lg font-bold">사주 분석</h1>
+          <button
+            onClick={handleReset}
+            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50"
+          >
+            <RotateCcw size={12} />
+            다시 하기
+          </button>
+        </div>
+        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+          <p className="text-sm text-destructive">{errorMsg}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // ── 결과 ─────────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-4 px-4 py-5">
       {/* 헤더 */}
@@ -379,9 +491,9 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
         </button>
       </div>
 
-      {/* 사주 4기둥 */}
-      {sajuResult ? (
+      {sajuResult && (
         <>
+          {/* 사주 4기둥 */}
           <div className="grid grid-cols-4 gap-2">
             <PillarCard label="年柱" pillar={sajuResult.fourPillars.year} />
             <PillarCard label="月柱" pillar={sajuResult.fourPillars.month} />
@@ -411,88 +523,58 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
 
           {/* 오행 분포 */}
           <ElementBalance balance={sajuResult.elementBalance} />
-        </>
-      ) : (
-        <div className="flex h-40 items-center justify-center">
-          <Loader2 size={24} className="animate-spin text-indigo-500" />
-        </div>
-      )}
 
-      {/* AI 분석 텍스트 */}
-      <div className="rounded-xl border border-border bg-card p-4">
-        <div className="mb-3 flex items-center gap-2">
-          <Sparkles size={14} className="text-indigo-500" />
-          <span className="text-xs font-semibold text-indigo-600">AI 사주 분석</span>
-          {status === 'streaming' && (
-            <Loader2 size={12} className="ml-auto animate-spin text-muted-foreground" />
-          )}
-        </div>
+          {/* 십신 */}
+          <TenGodsSection
+            tenGods={sajuResult.tenGods}
+            fourPillars={sajuResult.fourPillars}
+          />
 
-        {errorMsg ? (
-          <p className="text-sm text-destructive">{errorMsg}</p>
-        ) : aiText ? (
-          <div className="prose prose-sm max-w-none text-sm leading-relaxed text-foreground [&_h2]:mb-1.5 [&_h2]:mt-4 [&_h2]:text-sm [&_h2]:font-semibold [&_h2]:text-indigo-700 [&_p]:text-sm [&_p]:leading-relaxed">
-            {/* 마크다운 헤딩을 간단히 파싱해 렌더링 */}
-            {aiText.split('\n').map((line, i) => {
-              if (line.startsWith('## ')) {
-                return (
-                  <h2 key={i} className="mt-4 first:mt-0 text-sm font-semibold text-indigo-700">
-                    {line.slice(3)}
-                  </h2>
-                )
-              }
-              if (line.trim() === '') return <br key={i} />
-              return (
-                <p key={i} className="text-sm leading-relaxed">
-                  {line}
-                </p>
+          {/* 십이운성 */}
+          <SipIunSeongSection
+            sipIunSeong={sajuResult.sipIunSeong}
+            fourPillars={sajuResult.fourPillars}
+          />
+
+          {/* 공망 */}
+          <GongMangBadge gongMang={sajuResult.gongMang} />
+
+          {/* 대운 */}
+          <DaewoonSection daewoon={sajuResult.daewoon} />
+
+          {/* 저장 버튼 */}
+          <div className="rounded-xl border border-border bg-card p-4">
+            {isLoggedIn ? (
+              isSaved ? (
+                <div className="flex items-center justify-center gap-2 text-sm font-medium text-green-600">
+                  <BookmarkCheck size={16} />
+                  보관함에 저장되었어요
+                </div>
+              ) : (
+                <button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                >
+                  {isSaving ? (
+                    <Loader2 size={15} className="animate-spin" />
+                  ) : (
+                    <BookmarkCheck size={15} />
+                  )}
+                  {isSaving ? '저장 중...' : '보관함에 저장'}
+                </button>
               )
-            })}
-            {status === 'streaming' && (
-              <span className="inline-block h-4 w-0.5 animate-pulse bg-indigo-500" />
+            ) : (
+              <Link
+                href="/login?callbackUrl=/saju"
+                className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+              >
+                <LogIn size={14} />
+                로그인하면 분석 결과를 저장할 수 있어요
+              </Link>
             )}
           </div>
-        ) : (
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 size={14} className="animate-spin" />
-            <span>AI가 분석 중이에요...</span>
-          </div>
-        )}
-      </div>
-
-      {/* 저장 버튼 — 분석 완료 후 표시 */}
-      {status === 'done' && (
-        <div className="rounded-xl border border-border bg-card p-4">
-          {isLoggedIn ? (
-            isSaved ? (
-              <div className="flex items-center justify-center gap-2 text-sm font-medium text-green-600">
-                <BookmarkCheck size={16} />
-                보관함에 저장되었어요
-              </div>
-            ) : (
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
-              >
-                {isSaving ? (
-                  <Loader2 size={15} className="animate-spin" />
-                ) : (
-                  <BookmarkCheck size={15} />
-                )}
-                {isSaving ? '저장 중...' : '보관함에 저장'}
-              </button>
-            )
-          ) : (
-            <Link
-              href="/login?callbackUrl=/saju"
-              className="flex items-center justify-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-            >
-              <LogIn size={14} />
-              로그인하면 분석 결과를 저장할 수 있어요
-            </Link>
-          )}
-        </div>
+        </>
       )}
     </div>
   )

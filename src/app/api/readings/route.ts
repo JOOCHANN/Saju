@@ -36,7 +36,7 @@ export async function GET() {
 
 const saveSchema = z.object({
   sajuResult: z.record(z.unknown()),
-  aiText: z.string().max(5000),
+  aiText: z.string().max(5000).optional().default(''),
 })
 
 export async function POST(request: Request) {
