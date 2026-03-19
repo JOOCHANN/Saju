@@ -5,5 +5,6 @@ export const dynamic = 'force-dynamic'
 
 export default async function SajuPage() {
   const session = await auth()
-  return <SajuClient isLoggedIn={!!session?.user?.id} />
+  const aiAvailable = !!process.env.OPENAI_API_KEY
+  return <SajuClient isLoggedIn={!!session?.user?.id} aiAvailable={aiAvailable} />
 }
