@@ -5,7 +5,6 @@ import { z } from 'zod'
 import { calculateSaju } from '@/lib/saju'
 import { buildSajuUserMessage, SAJU_SYSTEM_PROMPT } from '@/lib/ai/prompts'
 
-export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
 const inputSchema = z.object({

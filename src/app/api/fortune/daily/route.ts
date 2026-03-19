@@ -4,7 +4,6 @@ import { z } from 'zod'
 import { redis, getTodayKST, secondsUntilMidnightKST } from '@/lib/cache/redis'
 import { isValidZodiac } from '@/lib/fortune/zodiac'
 
-export const runtime = 'edge'
 export const dynamic = 'force-dynamic'
 
 // ────────────────────────────────────────────────────────────────────────────
