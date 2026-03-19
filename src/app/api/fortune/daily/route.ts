@@ -23,6 +23,7 @@ export interface DailyFortune {
   score: { overall: number; love: number; money: number; health: number }
   luckyColor: string
   luckyNumber: number
+  lottoSets: number[][]   // 5세트 × 6개 (정렬됨)
   personalized?: boolean
 }
 
@@ -74,6 +75,18 @@ function computeFortuneNumbers(seed: number) {
     attempts++
   } while (Math.max(...scores) - Math.min(...scores) < 25 && attempts < 30)
 
+  // 로또 번호 5세트 (1~45 중 6개, 오름차순)
+  const lottoSets: number[][] = []
+  for (let s = 0; s < 5; s++) {
+    // Fisher-Yates 셔플로 1~45 배열에서 6개 뽑기
+    const pool = Array.from({ length: 45 }, (_, i) => i + 1)
+    for (let i = 44; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]]
+    }
+    lottoSets.push(pool.slice(0, 6).sort((a, b) => a - b))
+  }
+
   return {
     score: {
       overall: scores[0],
@@ -83,6 +96,7 @@ function computeFortuneNumbers(seed: number) {
     },
     luckyColor,
     luckyNumber,
+    lottoSets,
   }
 }
 

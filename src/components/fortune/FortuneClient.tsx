@@ -92,6 +92,38 @@ function FortuneCard({ fortune }: { fortune: DailyFortune }) {
         </div>
       ))}
 
+      {/* 로또 번호 */}
+      {fortune.lottoSets && (
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold">
+            🎱 오늘의 행운 로또번호 <span className="text-[11px] font-normal text-muted-foreground">(5세트 / 재미용)</span>
+          </p>
+          <div className="space-y-2">
+            {fortune.lottoSets.map((set, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <span className="text-[11px] text-muted-foreground w-8">{i + 1}번</span>
+                <div className="flex gap-1.5">
+                  {set.map((n) => {
+                    const bg =
+                      n <= 10 ? 'bg-yellow-400 text-white' :
+                      n <= 20 ? 'bg-blue-500 text-white' :
+                      n <= 30 ? 'bg-red-500 text-white' :
+                      n <= 40 ? 'bg-gray-500 text-white' :
+                               'bg-green-500 text-white'
+                    return (
+                      <span key={n} className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold shadow-sm ${bg}`}>
+                        {n}
+                      </span>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-3 text-[10px] text-muted-foreground">* 재미로 보는 번호예요. 당첨을 보장하지 않아요 😄</p>
+        </div>
+      )}
+
       {/* 행운 정보 */}
       <div className="flex gap-3">
         <div className="flex flex-1 items-center gap-3 rounded-xl border border-border bg-card p-3">
