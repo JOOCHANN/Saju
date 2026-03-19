@@ -26,6 +26,8 @@ export interface AdultFortune {
     night: string
   }
   psychAnalysis: string        // 🧠 관계 심리 분석
+  positionAdvice: string       // 🔞 오늘의 추천 체위 + 사주 근거
+  intimacyMood: string         // 💥 관계 시 에너지·분위기 흐름
   warning: string              // ⚠️ 주의 포인트
   score: number                // 헤더 표시용 점수 (1~100)
   personalized: boolean
@@ -161,6 +163,8 @@ ${sajuContext ? '- 사주 특성을 반영해 개인화 강화' : ''}
     "night": "저녁 미션 — 구체적 행동 1가지 + 반응 분기 포함 (2문장)"
   },
   "psychAnalysis": "관계 심리 분석 — ${statusKo} 상황에서 상대(또는 잠재 인연)의 심리 흐름, 나의 감정 패턴, 관계 역학. 조건 문장 최소 1개 포함 (4~5문장)",
+  "positionAdvice": "오늘의 추천 체위 이름(예: 정상위, 후배위, 기승위, 측위, 앉은 자세 등) 1~2가지 + 오늘 사주 에너지(주도권·오행·운 흐름)와 연결한 추천 이유 (2~3문장, ${statusKo} 상황 반영)",
+  "intimacyMood": "오늘 관계 시 분위기·에너지 흐름 — 리드하는 쪽이 누구인지, 속도감(빠름/느림), 감정 깊이, 오늘 특히 반응이 좋은 포인트 (2~3문장, 구체적이되 품위 있게)",
   "warning": "실제 상황 기반 주의사항 — 추상적 경고 금지, 구체적 행동 패턴으로 서술. 조건 기반 1개 이상 (2~3문장)"
 }`
 
@@ -192,6 +196,8 @@ ${sajuContext ? '- 사주 특성을 반영해 개인화 강화' : ''}
       night: String(tf.night ?? ''),
     },
     psychAnalysis: String(p.psychAnalysis ?? ''),
+    positionAdvice: String(p.positionAdvice ?? ''),
+    intimacyMood: String(p.intimacyMood ?? ''),
     warning: String(p.warning ?? ''),
   }
 }
@@ -226,7 +232,7 @@ export async function GET(request: Request) {
   const date = getTodayKST()
 
   const birthKey = month && day ? `${year}-${month}-${day}` : month ? `${year}-${month}` : `${year}`
-  const cacheKey = `fortune-adult:v2:${date}:${birthKey}:${gender}:${status}`
+  const cacheKey = `fortune-adult:v3:${date}:${birthKey}:${gender}:${status}`
 
   // ── Redis 캐시 확인 ────────────────────────────────────────────────────
   if (redis) {

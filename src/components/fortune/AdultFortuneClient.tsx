@@ -115,7 +115,19 @@ function AdultFortuneCard({ fortune }: { fortune: AdultFortune }) {
         <p className="text-sm leading-relaxed text-muted-foreground">{fortune.psychAnalysis}</p>
       </div>
 
-      {/* 6. ⚠️ 주의 포인트 */}
+      {/* 6. 🔞 오늘의 추천 체위 */}
+      <div className="rounded-2xl border border-rose-300 bg-gradient-to-br from-rose-50 to-pink-50 p-4">
+        <p className="text-sm font-bold text-rose-600 mb-2">🔞 오늘의 추천 체위</p>
+        <p className="text-sm leading-relaxed text-rose-900">{fortune.positionAdvice}</p>
+      </div>
+
+      {/* 7. 💥 관계 시 에너지 흐름 */}
+      <div className="rounded-2xl border border-pink-300 bg-gradient-to-br from-pink-50 to-fuchsia-50 p-4">
+        <p className="text-sm font-bold text-pink-600 mb-2">💥 관계 시 에너지 흐름</p>
+        <p className="text-sm leading-relaxed text-pink-900">{fortune.intimacyMood}</p>
+      </div>
+
+      {/* 8. ⚠️ 주의 포인트 */}
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
         <p className="text-sm font-bold text-amber-700 mb-2">⚠️ 주의 포인트</p>
         <p className="text-sm leading-relaxed text-amber-800">{fortune.warning}</p>
