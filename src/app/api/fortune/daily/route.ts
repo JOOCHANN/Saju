@@ -62,18 +62,18 @@ function computeFortuneNumbers(seed: number) {
   // 행운 번호
   const luckyNumber = Math.floor(rng() * 99) + 1
 
-  // 점수: 0~100, 4개 항목이 서로 다르고 최대-최소 차이 ≥ 25 보장
-  let scores: number[]
+  // 사랑·재물·건강 점수: 0~100, 차이 ≥ 25 보장
+  let love: number, money: number, health: number
   let attempts = 0
   do {
-    scores = [
-      Math.floor(rng() * 101),
-      Math.floor(rng() * 101),
-      Math.floor(rng() * 101),
-      Math.floor(rng() * 101),
-    ]
+    love   = Math.floor(rng() * 101)
+    money  = Math.floor(rng() * 101)
+    health = Math.floor(rng() * 101)
     attempts++
-  } while (Math.max(...scores) - Math.min(...scores) < 25 && attempts < 30)
+  } while (Math.max(love, money, health) - Math.min(love, money, health) < 25 && attempts < 30)
+
+  // 전체운 = 세 항목 평균 (반올림)
+  const overall = Math.round((love + money + health) / 3)
 
   // 로또 번호 5세트 (1~45 중 6개, 오름차순)
   const lottoSets: number[][] = []
@@ -88,12 +88,7 @@ function computeFortuneNumbers(seed: number) {
   }
 
   return {
-    score: {
-      overall: scores[0],
-      love: scores[1],
-      money: scores[2],
-      health: scores[3],
-    },
+    score: { overall, love, money, health },
     luckyColor,
     luckyNumber,
     lottoSets,
