@@ -451,11 +451,12 @@ function AiScoreBar({ score }: { score: number }) {
 }
 
 const AI_THEME: Record<string, { bg: string; border: string; title: string; badge: string; icon: string }> = {
-  연애운:          { bg: 'bg-pink-50',   border: 'border-pink-100',   title: 'text-pink-700',   badge: 'bg-pink-100 text-pink-700',   icon: '💕' },
-  결혼운:          { bg: 'bg-purple-50', border: 'border-purple-100', title: 'text-purple-700', badge: 'bg-purple-100 text-purple-700', icon: '💍' },
-  금전운:          { bg: 'bg-yellow-50', border: 'border-yellow-100', title: 'text-yellow-700', badge: 'bg-yellow-100 text-yellow-700', icon: '💰' },
-  직업운:          { bg: 'bg-blue-50',   border: 'border-blue-100',   title: 'text-blue-700',   badge: 'bg-blue-100 text-blue-700',   icon: '💼' },
-  건강운:          { bg: 'bg-green-50',  border: 'border-green-100',  title: 'text-green-700',  badge: 'bg-green-100 text-green-700',  icon: '🌿' },
+  연애운:           { bg: 'bg-pink-50',   border: 'border-pink-100',   title: 'text-pink-700',   badge: 'bg-pink-100 text-pink-700',   icon: '💕' },
+  결혼운:           { bg: 'bg-purple-50', border: 'border-purple-100', title: 'text-purple-700', badge: 'bg-purple-100 text-purple-700', icon: '💍' },
+  금전운:           { bg: 'bg-yellow-50', border: 'border-yellow-100', title: 'text-yellow-700', badge: 'bg-yellow-100 text-yellow-700', icon: '💰' },
+  직업운:           { bg: 'bg-blue-50',   border: 'border-blue-100',   title: 'text-blue-700',   badge: 'bg-blue-100 text-blue-700',   icon: '💼' },
+  건강운:           { bg: 'bg-green-50',  border: 'border-green-100',  title: 'text-green-700',  badge: 'bg-green-100 text-green-700',  icon: '🌿' },
+  '예상 MBTI':      { bg: 'bg-cyan-50',   border: 'border-cyan-100',   title: 'text-cyan-700',   badge: 'bg-cyan-100 text-cyan-700',   icon: '🧠' },
   '이 사주의 핵심 조언': { bg: 'bg-indigo-50', border: 'border-indigo-100', title: 'text-indigo-700', badge: 'bg-indigo-100 text-indigo-700', icon: '✨' },
 }
 
