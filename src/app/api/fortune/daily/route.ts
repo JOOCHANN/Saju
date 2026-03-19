@@ -59,16 +59,19 @@ function computeFortuneNumbers(seed: number) {
   // 색상 선택
   const luckyColor = LUCKY_COLORS[Math.floor(rng() * LUCKY_COLORS.length)]
 
-  // 행운 번호
-  const luckyNumber = Math.floor(rng() * 99) + 1
+  // 행운 번호 (1~10)
+  const luckyNumber = Math.floor(rng() * 10) + 1
 
-  // 사랑·재물·건강 점수: 0~100, 차이 ≥ 25 보장
+  // 사랑·재물·건강 점수: 1~100, 40점 이상 확률 높음 (두 난수의 max → 상위 편향)
+  // Math.max(r1, r2) CDF = x², P(X >= 0.4) ≈ 84%
+  const biased = () => Math.floor(Math.max(rng(), rng()) * 100) + 1
+
   let love: number, money: number, health: number
   let attempts = 0
   do {
-    love   = Math.floor(rng() * 101)
-    money  = Math.floor(rng() * 101)
-    health = Math.floor(rng() * 101)
+    love   = biased()
+    money  = biased()
+    health = biased()
     attempts++
   } while (Math.max(love, money, health) - Math.min(love, money, health) < 25 && attempts < 30)
 
