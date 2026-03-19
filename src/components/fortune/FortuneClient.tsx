@@ -92,38 +92,6 @@ function FortuneCard({ fortune }: { fortune: DailyFortune }) {
         </div>
       ))}
 
-      {/* 로또 번호 */}
-      {fortune.lottoSets && (
-        <div className="rounded-2xl border border-border bg-card p-4">
-          <p className="mb-3 flex items-center gap-1.5 text-sm font-semibold">
-            🎱 오늘의 행운 로또번호 <span className="text-[11px] font-normal text-muted-foreground">(5세트 / 재미용)</span>
-          </p>
-          <div className="space-y-2">
-            {fortune.lottoSets.map((set, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <span className="text-[11px] text-muted-foreground w-8">{i + 1}번</span>
-                <div className="flex gap-1.5">
-                  {set.map((n) => {
-                    const bg =
-                      n <= 10 ? 'bg-yellow-400 text-white' :
-                      n <= 20 ? 'bg-blue-500 text-white' :
-                      n <= 30 ? 'bg-red-500 text-white' :
-                      n <= 40 ? 'bg-gray-500 text-white' :
-                               'bg-green-500 text-white'
-                    return (
-                      <span key={n} className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold shadow-sm ${bg}`}>
-                        {n}
-                      </span>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </div>
-          <p className="mt-3 text-[10px] text-muted-foreground">* 재미로 보는 번호예요. 당첨을 보장하지 않아요 😄</p>
-        </div>
-      )}
-
       {/* 행운 정보 */}
       <div className="flex gap-3">
         <div className="flex flex-1 items-center gap-3 rounded-xl border border-border bg-card p-3">
@@ -143,6 +111,63 @@ function FortuneCard({ fortune }: { fortune: DailyFortune }) {
           </div>
         </div>
       </div>
+
+      {/* 로또 번호 — 접이식 */}
+      {fortune.lottoSets && <LottoSection sets={fortune.lottoSets} />}
+    </div>
+  )
+}
+
+function LottoBall({ n }: { n: number }) {
+  const style =
+    n <= 10 ? 'bg-gradient-to-b from-yellow-300 to-yellow-500 text-white shadow-yellow-200' :
+    n <= 20 ? 'bg-gradient-to-b from-blue-400 to-blue-600 text-white shadow-blue-200' :
+    n <= 30 ? 'bg-gradient-to-b from-red-400 to-red-600 text-white shadow-red-200' :
+    n <= 40 ? 'bg-gradient-to-b from-gray-400 to-gray-600 text-white shadow-gray-200' :
+              'bg-gradient-to-b from-green-400 to-green-600 text-white shadow-green-200'
+  return (
+    <span className={`flex h-9 w-9 items-center justify-center rounded-full text-[13px] font-bold shadow-md ${style}`}>
+      {n}
+    </span>
+  )
+}
+
+function LottoSection({ sets }: { sets: number[][] }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="overflow-hidden rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-center justify-between px-4 py-4 text-left"
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🎱</span>
+          <div>
+            <p className="text-sm font-bold text-amber-800">오늘의 행운 로또 번호를 보시겠습니까?</p>
+            <p className="text-[11px] text-amber-600">오늘 날짜 기준 5세트 추천</p>
+          </div>
+        </div>
+        <ChevronDown size={18} className={`shrink-0 text-amber-500 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+      </button>
+
+      {open && (
+        <div className="border-t border-amber-100 px-4 pb-5 pt-4">
+          <div className="space-y-3">
+            {sets.map((set, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <span className="w-10 shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-center text-[11px] font-bold text-amber-700">
+                  {i + 1}번
+                </span>
+                <div className="flex gap-1.5">
+                  {set.map((n) => <LottoBall key={n} n={n} />)}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-center text-[11px] text-amber-500">재미로 보는 번호예요 😄 당첨을 보장하지 않아요</p>
+        </div>
+      )}
     </div>
   )
 }
