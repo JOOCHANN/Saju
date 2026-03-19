@@ -50,6 +50,45 @@ const ELEMENT_BG_LIGHT: Record<string, string> = {
   수: 'bg-blue-100',
 }
 
+// 오행 한 줄 설명
+const ELEMENT_DESC: Record<string, string> = {
+  목: '성장·창의·인자함',
+  화: '열정·표현·예의',
+  토: '안정·신용·중립',
+  금: '결단·의리·정의',
+  수: '지혜·적응·감성',
+}
+
+// 십신 설명
+const TEN_GOD_DESC: Record<string, string> = {
+  비견: '독립심·자존감 강함',
+  겁재: '승부욕·강한 의지',
+  식신: '재능·표현력·먹복',
+  상관: '창의력·자유로운 영혼',
+  편재: '활동적 재물·사업 기질',
+  정재: '안정적 재물·성실함',
+  편관: '강한 추진력·도전정신',
+  정관: '명예·책임감·원칙주의',
+  편인: '예술·직관·독창성',
+  정인: '학문·지혜·포용력',
+}
+
+// 십이운성 설명
+const SIP_IUN_DESC: Record<string, string> = {
+  장생: '새로운 시작, 성장의 기운',
+  목욕: '순수함, 예민한 감수성',
+  관대: '발전과 성장, 활기찬 에너지',
+  건록: '독립·자립, 왕성한 활동력',
+  제왕: '전성기, 강한 리더십',
+  쇠: '원숙함, 지혜로운 판단',
+  병: '인내의 시기, 내면 성찰',
+  사: '변화와 전환, 새로운 준비',
+  묘: '저장·축적, 내실을 다지는 때',
+  절: '단절과 재충전, 새 출발 준비',
+  태: '잉태와 계획, 가능성의 씨앗',
+  양: '양육과 보호, 천천히 성장',
+}
+
 type Status = 'idle' | 'loading' | 'streaming' | 'done' | 'error'
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -80,6 +119,8 @@ function PillarCard({
         {pillar.stemKorean}
         {pillar.branchKorean}
       </span>
+      {/* 지지 동물 */}
+      <span className="text-[10px] text-muted-foreground">{pillar.zodiac}띠</span>
     </div>
   )
 }
@@ -99,7 +140,12 @@ function ElementBalance({ balance }: { balance: SajuResult['elementBalance'] }) 
           const pct = total > 0 ? (count / total) * 100 : 0
           return (
             <div key={elem} className="flex items-center gap-2">
-              <span className="w-4 text-center text-xs font-medium">{elem}</span>
+              <div className="flex w-16 flex-col">
+                <span className="text-xs font-medium">{elem}</span>
+                <span className="text-[9px] leading-tight text-muted-foreground">
+                  {ELEMENT_DESC[elem]}
+                </span>
+              </div>
               <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
                 <div
                   className={`h-full rounded-full transition-all duration-700 ${ELEMENT_COLORS[elem]}`}
@@ -134,10 +180,13 @@ function TenGodsSection({
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
-      <p className="mb-3 text-xs font-semibold text-muted-foreground">십신 (十神)</p>
-      <div className="flex gap-3">
+      <div className="mb-1 flex items-baseline gap-2">
+        <p className="text-xs font-semibold text-muted-foreground">십신 (十神)</p>
+        <p className="text-[10px] text-muted-foreground">— 일간을 기준으로 각 기둥이 나에게 미치는 역할</p>
+      </div>
+      <div className="mt-3 flex gap-3">
         {items.map(({ label, god, pillar }) => (
-          <div key={label} className="flex flex-col items-center gap-1">
+          <div key={label} className="flex flex-1 flex-col items-center gap-1 rounded-lg bg-muted/40 px-2 py-2">
             <span className="text-[10px] text-muted-foreground">{label}</span>
             <span className="text-sm font-semibold text-foreground">
               {pillar!.stem}
@@ -145,6 +194,9 @@ function TenGodsSection({
             </span>
             <span className="rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-medium text-indigo-700">
               {god}
+            </span>
+            <span className="mt-0.5 text-center text-[9px] leading-tight text-muted-foreground">
+              {TEN_GOD_DESC[god as string] ?? ''}
             </span>
           </div>
         ))}
@@ -173,16 +225,22 @@ function SipIunSeongSection({
 
   return (
     <div className="rounded-xl border border-border bg-card p-4">
-      <p className="mb-3 text-xs font-semibold text-muted-foreground">십이운성 (十二運星)</p>
-      <div className="grid grid-cols-4 gap-2">
+      <div className="mb-1 flex items-baseline gap-2">
+        <p className="text-xs font-semibold text-muted-foreground">십이운성 (十二運星)</p>
+        <p className="text-[10px] text-muted-foreground">— 일간이 각 기둥에서 갖는 생애 주기</p>
+      </div>
+      <div className="mt-3 grid grid-cols-4 gap-2">
         {items.map(({ label, stage, pillar }) => (
-          <div key={label} className="flex flex-col items-center gap-1">
+          <div key={label} className="flex flex-col items-center gap-1 rounded-lg bg-muted/40 px-1 py-2">
             <span className="text-[10px] text-muted-foreground">{label}</span>
             <span className="text-xs text-foreground">
               {pillar!.stem}
               {pillar!.branch}
             </span>
-            <span className="text-[10px] font-medium text-amber-700">{stage}</span>
+            <span className="text-[10px] font-semibold text-amber-700">{stage}</span>
+            <span className="mt-0.5 text-center text-[9px] leading-tight text-muted-foreground">
+              {SIP_IUN_DESC[stage as string] ?? ''}
+            </span>
           </div>
         ))}
       </div>
@@ -196,18 +254,23 @@ function SipIunSeongSection({
 
 function GongMangBadge({ gongMang }: { gongMang: SajuResult['gongMang'] }) {
   return (
-    <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-3">
-      <span className="text-xs text-muted-foreground">공망 (空亡)</span>
-      <div className="flex gap-1.5">
-        {gongMang.map((b, i) => (
-          <span
-            key={i}
-            className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600"
-          >
-            {BRANCHES[b].char} {BRANCHES[b].korean}
-          </span>
-        ))}
+    <div className="rounded-xl border border-border bg-card px-4 py-3">
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-semibold text-muted-foreground">공망 (空亡)</span>
+        <div className="flex gap-1.5">
+          {gongMang.map((b, i) => (
+            <span
+              key={i}
+              className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600"
+            >
+              {BRANCHES[b].char} {BRANCHES[b].korean} ({BRANCHES[b].zodiac})
+            </span>
+          ))}
+        </div>
       </div>
+      <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+        이 지지의 기운이 약해지는 구간이에요. 해당 띠의 인연이나 관련 분야에서 허무함을 느낄 수 있어 물질보다 정신적 성장에 집중하는 게 유리해요.
+      </p>
     </div>
   )
 }
@@ -220,26 +283,35 @@ function DaewoonSection({ daewoon }: { daewoon: SajuResult['daewoon'] }) {
   const items = daewoon.slice(0, 6)
   return (
     <div className="rounded-xl border border-border bg-card p-4">
-      <p className="mb-3 text-xs font-semibold text-muted-foreground">대운 (大運)</p>
-      <div className="flex gap-2 overflow-x-auto pb-1">
-        {items.map((dw, i) => (
-          <div
-            key={i}
-            className="flex min-w-[52px] flex-col items-center gap-1 rounded-lg bg-muted/50 px-2 py-2"
-          >
-            <span className="text-[10px] text-muted-foreground">{dw.startAge}세~</span>
-            <span className="text-base font-bold text-foreground">
-              {STEMS[dw.stemIndex].char}
-            </span>
-            <span className="text-sm font-semibold text-foreground">
-              {BRANCHES[dw.branchIndex].char}
-            </span>
-            <span className="text-[10px] text-muted-foreground">
-              {STEMS[dw.stemIndex].korean}
-              {BRANCHES[dw.branchIndex].korean}
-            </span>
-          </div>
-        ))}
+      <div className="mb-1 flex items-baseline gap-2">
+        <p className="text-xs font-semibold text-muted-foreground">대운 (大運)</p>
+        <p className="text-[10px] text-muted-foreground">— 10년 단위로 바뀌는 큰 운의 흐름</p>
+      </div>
+      <div className="mt-3 flex gap-2 overflow-x-auto pb-1">
+        {items.map((dw, i) => {
+          const stemElem = ELEMENT_NAMES[STEMS[dw.stemIndex].element]
+          return (
+            <div
+              key={i}
+              className="flex min-w-[56px] flex-col items-center gap-1 rounded-lg bg-muted/50 px-2 py-2"
+            >
+              <span className="text-[10px] text-muted-foreground">{dw.startAge}세~</span>
+              <span className={`text-base font-bold ${ELEMENT_TEXT_COLORS[stemElem] ?? 'text-foreground'}`}>
+                {STEMS[dw.stemIndex].char}
+              </span>
+              <span className="text-sm font-semibold text-foreground">
+                {BRANCHES[dw.branchIndex].char}
+              </span>
+              <span className="text-[10px] text-muted-foreground">
+                {STEMS[dw.stemIndex].korean}
+                {BRANCHES[dw.branchIndex].korean}
+              </span>
+              <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-medium ${ELEMENT_BG_LIGHT[stemElem]} ${ELEMENT_TEXT_COLORS[stemElem]}`}>
+                {stemElem}
+              </span>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
