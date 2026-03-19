@@ -1,8 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Loader2, RefreshCw, Sparkles } from 'lucide-react'
+import { ArrowLeft, ChevronDown, Loader2, RefreshCw, Sparkles } from 'lucide-react'
 import { ZODIACS, getRecentYears, getZodiacByYear } from '@/lib/fortune/zodiac'
+import type { ZodiacData } from '@/lib/fortune/zodiac'
 import type { DailyFortune } from '@/app/api/fortune/daily/route'
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -173,15 +174,30 @@ function LottoSection({ sets }: { sets: number[][] }) {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// 유틸
+// ────────────────────────────────────────────────────────────────────────────
+
+/** 해당 띠의 모든 출생 연도 (최신순) */
+function getAllYearsForZodiac(zodiac: ZodiacData): number[] {
+  const years: number[] = []
+  const max = new Date().getFullYear()
+  let y = zodiac.baseYear
+  while (y <= max) {
+    years.push(y)
+    y += 12
+  }
+  return years.reverse()
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // 메인 컴포넌트
 // ────────────────────────────────────────────────────────────────────────────
 
-type Mode = 'zodiac' | 'birthdate'
-type Status = 'select' | 'loading' | 'done' | 'error'
+type Status = 'select' | 'birthdate' | 'loading' | 'done' | 'error'
 
 export default function FortuneClient() {
-  const [mode, setMode] = useState<Mode>('zodiac')
   const [status, setStatus] = useState<Status>('select')
+  const [selectedZodiac, setSelectedZodiac] = useState<ZodiacData | null>(null)
   const [fortune, setFortune] = useState<DailyFortune | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
   const [loadingLabel, setLoadingLabel] = useState('')
@@ -200,21 +216,13 @@ export default function FortuneClient() {
     AI_ERROR: '운세 생성 중 오류가 발생했어요. 다시 시도해주세요.',
   }
 
-  async function fetchByZodiac(zodiac: string) {
-    setLoadingLabel(`${zodiac}띠`)
-    setStatus('loading')
-    setFortune(null)
-    setErrorMsg('')
-    try {
-      const res = await fetch(`/api/fortune/daily?zodiac=${encodeURIComponent(zodiac)}`)
-      const json = (await res.json()) as { data?: DailyFortune; error?: string }
-      if (!res.ok || !json.data) throw new Error(ERROR_MESSAGES[json.error ?? 'AI_ERROR'] ?? '오류가 발생했어요.')
-      setFortune(json.data)
-      setStatus('done')
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : '오류가 발생했어요.')
-      setStatus('error')
-    }
+  function handleZodiacClick(z: ZodiacData) {
+    setSelectedZodiac(z)
+    const years = getAllYearsForZodiac(z)
+    setBirthYear(String(years[0]))
+    setBirthMonth('1')
+    setBirthDay('1')
+    setStatus('birthdate')
   }
 
   async function fetchByBirthdate(e: React.FormEvent) {
@@ -284,84 +292,52 @@ export default function FortuneClient() {
     )
   }
 
-  // ── 선택 화면 ─────────────────────────────────────────────────────────────
-  return (
-    <div className="flex flex-col gap-5 px-4 py-5">
-      <div>
-        <h1 className="text-xl font-bold">오늘의 운세</h1>
-        <p className="mt-1 text-sm text-muted-foreground">원하는 방식으로 오늘의 운세를 확인하세요</p>
-      </div>
-
-      {/* 모드 토글 */}
-      <div className="flex rounded-xl border border-border bg-muted/30 p-1 gap-1">
-        <button
-          type="button"
-          onClick={() => setMode('zodiac')}
-          className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-colors ${
-            mode === 'zodiac'
-              ? 'bg-white shadow-sm text-foreground'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          🐾 띠로 보기
-        </button>
-        <button
-          type="button"
-          onClick={() => setMode('birthdate')}
-          className={`flex-1 rounded-lg py-2.5 text-sm font-medium transition-colors ${
-            mode === 'birthdate'
-              ? 'bg-white shadow-sm text-foreground'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          ✨ 생년월일로 보기
-        </button>
-      </div>
-
-      {/* 띠 선택 */}
-      {mode === 'zodiac' && (
-        <div className="grid grid-cols-3 gap-2">
-          {ZODIACS.map((z) => {
-            const years = getRecentYears(z)
-            return (
-              <button
-                key={z.name}
-                onClick={() => fetchByZodiac(z.name)}
-                className="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-card px-2 py-4 transition-colors hover:border-amber-300 hover:bg-amber-50 active:scale-95"
-              >
-                <span className="text-3xl">{z.emoji}</span>
-                <span className="text-sm font-semibold">{z.name}띠</span>
-                <span className="text-[10px] text-muted-foreground">
-                  {years.join(', ')}년생
-                </span>
-              </button>
-            )
-          })}
+  // ── 생년월일 입력 ─────────────────────────────────────────────────────────
+  if (status === 'birthdate' && selectedZodiac) {
+    const years = getAllYearsForZodiac(selectedZodiac)
+    return (
+      <div className="flex flex-col gap-5 px-4 py-5">
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setStatus('select')}
+            className="flex h-8 w-8 items-center justify-center rounded-full border border-border hover:bg-muted/50"
+          >
+            <ArrowLeft size={16} />
+          </button>
+          <div>
+            <h1 className="text-xl font-bold">오늘의 운세보기</h1>
+            <p className="text-sm text-muted-foreground">
+              <span className="mr-1">{selectedZodiac.emoji}</span>
+              {selectedZodiac.name}띠 선택됨
+            </p>
+          </div>
         </div>
-      )}
 
-      {/* 생년월일 입력 */}
-      {mode === 'birthdate' && (
         <form onSubmit={fetchByBirthdate} className="flex flex-col gap-4">
           <div className="rounded-2xl border border-amber-100 bg-amber-50 p-3 text-[12px] leading-relaxed text-amber-800">
-            ✨ 생년월일을 입력하면 사주 기반으로 더 개인화된 오늘의 운세를 알려드려요.
+            ✨ 생년월일을 선택하면 사주 기반으로 더 개인화된 오늘의 운세를 알려드려요.
           </div>
 
+          {/* 출생 연도 */}
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium">출생 연도</label>
-            <input
-              type="number"
-              inputMode="numeric"
-              placeholder="예) 1990"
-              value={birthYear}
-              onChange={(e) => setBirthYear(e.target.value)}
-              min={1900}
-              max={2020}
-              required
-              className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 ring-offset-background"
-            />
+            <div className="relative">
+              <select
+                value={birthYear}
+                onChange={(e) => setBirthYear(e.target.value)}
+                required
+                className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 ring-offset-background"
+              >
+                {years.map((y) => (
+                  <option key={y} value={y}>{y}년생</option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+            </div>
           </div>
 
+          {/* 월·일 */}
           <div className="flex gap-3">
             {[
               { id: 'bmonth', label: '월', value: birthMonth, set: setBirthMonth, count: 12, unit: '월' },
@@ -394,7 +370,36 @@ export default function FortuneClient() {
             나만의 오늘 운세 보기
           </button>
         </form>
-      )}
+      </div>
+    )
+  }
+
+  // ── 띠 선택 화면 ──────────────────────────────────────────────────────────
+  return (
+    <div className="flex flex-col gap-5 px-4 py-5">
+      <div>
+        <h1 className="text-xl font-bold">오늘의 운세보기</h1>
+        <p className="mt-1 text-sm text-muted-foreground">띠를 선택해주세요</p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-2">
+        {ZODIACS.map((z) => {
+          const years = getRecentYears(z)
+          return (
+            <button
+              key={z.name}
+              onClick={() => handleZodiacClick(z)}
+              className="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-card px-2 py-4 transition-colors hover:border-amber-300 hover:bg-amber-50 active:scale-95"
+            >
+              <span className="text-3xl">{z.emoji}</span>
+              <span className="text-sm font-semibold">{z.name}띠</span>
+              <span className="text-[10px] text-muted-foreground">
+                {years.join(', ')}년생
+              </span>
+            </button>
+          )
+        })}
+      </div>
     </div>
   )
 }
