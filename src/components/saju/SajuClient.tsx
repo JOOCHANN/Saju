@@ -1,13 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import {
-  BookmarkCheck,
-  ChevronDown,
-  Loader2,
-  LogIn,
-  RotateCcw,
-} from 'lucide-react'
+import { BookmarkCheck, ChevronDown, Loader2, LogIn, RotateCcw } from 'lucide-react'
 import Link from 'next/link'
 import type { SajuResult } from '@/lib/saju'
 import { BRANCHES, ELEMENT_NAMES, STEMS } from '@/lib/saju'
@@ -32,27 +26,28 @@ const HOURS = [
   { label: '亥時 저녁 9시 ~ 11시', value: '21' },
 ]
 
-const ELEMENT_COLORS: Record<string, string> = {
-  목: 'bg-green-500', 화: 'bg-red-500', 토: 'bg-amber-500',
-  금: 'bg-gray-400', 수: 'bg-blue-500',
-}
-const ELEMENT_TEXT_COLORS: Record<string, string> = {
+const ELEM_TEXT: Record<string, string> = {
   목: 'text-green-700', 화: 'text-red-700', 토: 'text-amber-700',
   금: 'text-gray-600', 수: 'text-blue-700',
 }
-const ELEMENT_BG_LIGHT: Record<string, string> = {
+const ELEM_BG: Record<string, string> = {
   목: 'bg-green-100', 화: 'bg-red-100', 토: 'bg-amber-100',
   금: 'bg-gray-100', 수: 'bg-blue-100',
 }
-const ELEMENT_SIMPLE: Record<string, string> = {
-  목: '🌱 나무·성장', 화: '🔥 불·열정', 토: '🪨 흙·안정',
-  금: '⚙️ 금·결단', 수: '💧 물·지혜',
+const ELEM_BAR: Record<string, string> = {
+  목: 'bg-green-500', 화: 'bg-red-500', 토: 'bg-amber-500',
+  금: 'bg-gray-400', 수: 'bg-blue-500',
 }
-
+const ELEM_EMOJI: Record<string, string> = {
+  목: '🌱', 화: '🔥', 토: '🪨', 금: '⚙️', 수: '💧',
+}
+const ELEM_MEANING: Record<string, string> = {
+  목: '나무·성장·창의',화: '불·열정·표현',토: '흙·안정·신용',금: '금·결단·의리',수: '물·지혜·감성',
+}
 const TEN_GOD_DESC: Record<string, string> = {
   비견: '나와 비슷한 성격의 힘 — 독립심과 자존감이 강해요',
   겁재: '강한 경쟁심과 승부욕 — 추진력이 넘쳐요',
-  식신: '타고난 재능과 표현력 — 먹복(먹고 살 복)이 있어요',
+  식신: '타고난 재능과 표현력 — 먹고 살 복이 있어요',
   상관: '창의적이고 자유로운 영혼 — 틀에 박힌 걸 싫어해요',
   편재: '사업이나 투자로 버는 돈 — 활동적인 재물운이에요',
   정재: '꾸준히 모으는 안정적인 돈 — 성실하게 재산을 쌓아요',
@@ -61,93 +56,100 @@ const TEN_GOD_DESC: Record<string, string> = {
   편인: '예술적 감각과 직관력 — 독창적인 아이디어가 넘쳐요',
   정인: '학문과 지혜 — 배움을 좋아하고 포용력이 있어요',
 }
-
 const SIP_IUN_DESC: Record<string, string> = {
   장생: '새로운 시작의 기운 — 뭐든 시작하기 좋은 에너지예요',
   목욕: '순수하고 예민한 감수성 — 감정 기복이 있을 수 있어요',
-  관대: '쑥쑥 성장하는 시기 — 활기차고 발전하는 기운이에요',
+  관대: '쑥쑥 성장하는 에너지 — 활기차고 발전하는 기운이에요',
   건록: '스스로 독립하는 힘 — 가장 왕성하게 활동하는 기운이에요',
   제왕: '최고의 전성기 기운 — 리더십이 빛나는 시기예요',
   쇠: '원숙하고 지혜로운 기운 — 경험에서 나오는 판단력이 있어요',
   병: '쉬고 성찰하는 기운 — 무리하지 말고 내실을 다지세요',
   사: '변화와 전환의 기운 — 새로운 준비를 시작하는 시기예요',
   묘: '힘을 저장하는 기운 — 조용히 내실을 쌓는 때예요',
-  절: '완전히 새로 시작하는 기운 — 과거를 정리하고 재충전해요',
-  태: '가능성의 씨앗 — 아직 드러나지 않은 잠재력이 있어요',
+  절: '새로 시작하는 기운 — 과거를 정리하고 재충전해요',
+  태: '가능성의 씨앗 기운 — 아직 드러나지 않은 잠재력이 있어요',
   양: '천천히 자라나는 기운 — 서두르지 않고 꾸준히 성장해요',
 }
-
-const DAEWOON_ELEM_DESC: Record<string, string> = {
-  목: '성장과 도전의 시기예요. 새로운 일을 시작하거나 배움을 넓히기 좋아요. 적극적으로 나아가면 좋은 결과를 얻을 수 있어요.',
-  화: '활발하고 빛나는 시기예요. 주변에서 주목받고 인정받기 쉬운 때예요. 사회활동과 대인관계가 활발해져요.',
-  토: '안정과 기반을 다지는 시기예요. 신뢰를 쌓고 내실을 갖추는 데 집중하면 좋아요. 무리한 도전보다 꾸준함이 힘이에요.',
-  금: '결실을 맺는 시기예요. 그동안의 노력이 결과로 이어지는 때예요. 정리와 완성, 새로운 기준을 세우기 좋아요.',
-  수: '변화와 지혜의 시기예요. 유연하게 적응하며 새로운 방향을 찾는 때예요. 공부하거나 내면을 성장시키기 좋아요.',
+const DAEWOON_DESC: Record<string, string> = {
+  목: '성장과 도전의 시기예요. 새로운 일을 시작하거나 배움을 넓히기 좋아요.',
+  화: '활발하고 빛나는 시기예요. 주목받고 인정받기 쉬운 때예요.',
+  토: '안정과 기반을 다지는 시기예요. 꾸준함이 가장 큰 힘이에요.',
+  금: '결실을 맺는 시기예요. 그동안의 노력이 결과로 이어져요.',
+  수: '변화와 지혜의 시기예요. 유연하게 적응하며 새 방향을 찾아요.',
 }
 
 type Status = 'idle' | 'loading' | 'streaming' | 'done' | 'error'
 
 // ────────────────────────────────────────────────────────────────────────────
-// 공통 컴포넌트: 접었다 펼치는 카드
+// 공통 Chip 컴포넌트
+// ────────────────────────────────────────────────────────────────────────────
+
+function Chip({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-[11px] font-medium ${className}`}>
+      {children}
+    </span>
+  )
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// 공통 접이식 카드
 // ────────────────────────────────────────────────────────────────────────────
 
 function CollapsibleCard({
-  title,
-  titleSub,
-  summary,
-  defaultOpen = false,
-  children,
+  icon, title, titleSub, chips, children,
 }: {
+  icon: string
   title: string
   titleSub?: string
-  summary: React.ReactNode
-  defaultOpen?: boolean
+  chips: React.ReactNode
   children: React.ReactNode
 }) {
-  const [open, setOpen] = useState(defaultOpen)
+  const [open, setOpen] = useState(false)
   return (
-    <div className="rounded-xl border border-border bg-card overflow-hidden">
+    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-start justify-between gap-3 px-4 py-3 text-left"
+        className="flex w-full items-start gap-3 px-4 py-4 text-left"
       >
+        <span className="text-xl shrink-0">{icon}</span>
         <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-1.5 flex-wrap">
-            <span className="text-xs font-semibold text-muted-foreground">{title}</span>
+          <div className="flex flex-wrap items-baseline gap-1.5">
+            <span className="text-sm font-semibold text-foreground">{title}</span>
             {titleSub && (
-              <span className="text-[10px] text-muted-foreground">— {titleSub}</span>
+              <span className="text-[10px] text-muted-foreground">{titleSub}</span>
             )}
           </div>
-          <div className="mt-0.5 text-sm text-foreground">{summary}</div>
+          <div className="mt-2 flex flex-wrap gap-1">{chips}</div>
         </div>
         <ChevronDown
-          size={15}
+          size={16}
           className={`mt-1 shrink-0 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
         />
       </button>
       {open && (
-        <div className="border-t border-border px-4 pb-4 pt-3">{children}</div>
+        <div className="border-t border-border/60 bg-muted/20 px-4 pb-4 pt-3">
+          {children}
+        </div>
       )}
     </div>
   )
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// 서브 컴포넌트: 사주 4기둥 (항상 표시)
+// 사주 4기둥 카드
 // ────────────────────────────────────────────────────────────────────────────
 
 function PillarCard({ label, pillar }: { label: string; pillar: SajuResult['fourPillars']['year'] }) {
-  const elem = pillar.stemElement
+  const e = pillar.stemElement
   return (
-    <div className="flex flex-col items-center gap-1 rounded-xl border border-border bg-card px-2 py-3">
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
-      <span className={`text-2xl font-bold ${ELEMENT_TEXT_COLORS[elem] ?? 'text-foreground'}`}>
-        {pillar.stem}
-      </span>
+    <div className="flex flex-col items-center gap-1.5 rounded-2xl border border-border bg-card px-2 py-3 shadow-sm">
+      <span className="text-[10px] font-semibold text-muted-foreground">{label}</span>
+      <span className={`text-2xl font-bold ${ELEM_TEXT[e] ?? 'text-foreground'}`}>{pillar.stem}</span>
       <span className="text-xl font-semibold text-foreground">{pillar.branch}</span>
-      <span className={`mt-1 rounded-full px-2 py-0.5 text-[10px] font-medium ${ELEMENT_BG_LIGHT[elem]} ${ELEMENT_TEXT_COLORS[elem]}`}>
-        {elem}
+      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${ELEM_BG[e]} ${ELEM_TEXT[e]}`}>
+        {e}
       </span>
       <span className="text-[10px] text-muted-foreground">{pillar.stemKorean}{pillar.branchKorean}</span>
       <span className="text-[10px] text-muted-foreground">{pillar.zodiac}띠</span>
@@ -156,85 +158,81 @@ function PillarCard({ label, pillar }: { label: string; pillar: SajuResult['four
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// 서브 컴포넌트: 오행 분포 (접이식)
+// 알고리즘 섹션들
 // ────────────────────────────────────────────────────────────────────────────
 
 function ElementBalanceSection({ balance }: { balance: SajuResult['elementBalance'] }) {
   const total = Object.values(balance).reduce((a, b) => a + b, 0)
-  const sorted = ELEMENT_NAMES.slice().sort((a, b) => balance[b] - balance[a])
-  const top = sorted[0]
-  const summary = `${ELEMENT_SIMPLE[top]} 기운이 가장 강해요 (${ELEMENT_NAMES.map((e) => `${e}${balance[e]}`).join('·')})`
-
+  const chips = (
+    <>
+      {ELEMENT_NAMES.map((e) => (
+        <Chip key={e} className={`${ELEM_BG[e]} ${ELEM_TEXT[e]}`}>
+          {ELEM_EMOJI[e]} {e} {balance[e]}
+        </Chip>
+      ))}
+    </>
+  )
   return (
-    <CollapsibleCard title="오행 분포" titleSub="나를 구성하는 5가지 에너지 비율" summary={summary}>
-      <div className="flex flex-col gap-3">
-        {ELEMENT_NAMES.map((elem) => {
-          const count = balance[elem]
-          const pct = total > 0 ? (count / total) * 100 : 0
+    <CollapsibleCard icon="☯️" title="오행 분포" titleSub="나를 구성하는 5가지 에너지" chips={chips}>
+      <div className="space-y-3">
+        {ELEMENT_NAMES.map((e) => {
+          const pct = total > 0 ? (balance[e] / total) * 100 : 0
           return (
-            <div key={elem}>
+            <div key={e}>
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-xs font-semibold w-6">{elem}</span>
+                <span className="text-sm w-5">{ELEM_EMOJI[e]}</span>
+                <span className={`text-xs font-semibold w-4 ${ELEM_TEXT[e]}`}>{e}</span>
                 <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ${ELEMENT_COLORS[elem]}`}
-                    style={{ width: `${pct}%` }}
-                  />
+                  <div className={`h-full rounded-full transition-all duration-700 ${ELEM_BAR[e]}`} style={{ width: `${pct}%` }} />
                 </div>
-                <span className="w-4 text-right text-xs text-muted-foreground">{count}</span>
+                <span className="text-xs text-muted-foreground w-4 text-right">{balance[e]}</span>
               </div>
-              <p className="text-[11px] text-muted-foreground pl-8">{ELEMENT_SIMPLE[elem]}</p>
+              <p className="text-[11px] text-muted-foreground pl-10">{ELEM_MEANING[e]}</p>
             </div>
           )
         })}
-        <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground bg-muted/40 rounded-lg p-2">
+        <div className="rounded-xl bg-indigo-50 p-3 text-[11px] leading-relaxed text-indigo-800 mt-2">
           💡 기운이 2개 이상이면 그 성질이 강하게 나타나고, 0개이면 그 영역이 약할 수 있어요. 균형 잡힌 사주일수록 안정적이에요.
-        </p>
+        </div>
       </div>
     </CollapsibleCard>
   )
 }
-
-// ────────────────────────────────────────────────────────────────────────────
-// 서브 컴포넌트: 십신 (접이식)
-// ────────────────────────────────────────────────────────────────────────────
 
 function TenGodsSection({ tenGods, fourPillars }: {
-  tenGods: SajuResult['tenGods']
-  fourPillars: SajuResult['fourPillars']
+  tenGods: SajuResult['tenGods']; fourPillars: SajuResult['fourPillars']
 }) {
   const items = [
-    { label: '年柱', god: tenGods.year, pillar: fourPillars.year },
-    { label: '月柱', god: tenGods.month, pillar: fourPillars.month },
-    { label: '時柱', god: tenGods.hour, pillar: fourPillars.hour },
-  ].filter((item) => item.god !== null && item.pillar !== null)
+    { label: '年', god: tenGods.year, pillar: fourPillars.year },
+    { label: '月', god: tenGods.month, pillar: fourPillars.month },
+    { label: '時', god: tenGods.hour, pillar: fourPillars.hour },
+  ].filter((i) => i.god !== null && i.pillar !== null)
 
-  const summary = items.map((i) => `${i.label} ${i.god}`).join(' · ')
-
+  const chips = (
+    <>
+      {items.map(({ label, god }) => (
+        <Chip key={label} className="bg-indigo-100 text-indigo-700">
+          {label}柱 {god}
+        </Chip>
+      ))}
+    </>
+  )
   return (
-    <CollapsibleCard
-      title="십신 (十神)"
-      titleSub="각 기둥이 나에게 미치는 역할"
-      summary={summary}
-    >
-      <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground bg-muted/40 rounded-lg p-2">
-        💡 일간(나)을 기준으로 다른 기둥들이 어떤 역할을 하는지 나타내요. 재물·명예·가족 등 삶의 각 영역과 연결돼요.
-      </p>
-      <div className="flex flex-col gap-2">
+    <CollapsibleCard icon="🔮" title="십신 (十神)" titleSub="각 기둥이 나에게 미치는 역할" chips={chips}>
+      <div className="rounded-xl bg-indigo-50 p-3 text-[11px] leading-relaxed text-indigo-800 mb-3">
+        💡 일간(나)을 기준으로 다른 기둥들이 재물·명예·가족 등 어떤 역할을 하는지 보여줘요.
+      </div>
+      <div className="space-y-2">
         {items.map(({ label, god, pillar }) => (
-          <div key={label} className="flex items-start gap-3 rounded-lg bg-muted/40 p-3">
-            <div className="flex flex-col items-center min-w-[52px]">
-              <span className="text-[10px] text-muted-foreground">{label}</span>
-              <span className="text-sm font-bold">{pillar!.stem}{pillar!.branch}</span>
+          <div key={label} className="flex items-start gap-3 rounded-xl bg-white p-3 shadow-sm">
+            <div className="flex flex-col items-center min-w-[44px]">
+              <span className="text-[10px] text-muted-foreground">{label}柱</span>
+              <span className="text-base font-bold">{pillar!.stem}{pillar!.branch}</span>
               <span className="text-[10px] text-muted-foreground">{pillar!.stemKorean}{pillar!.branchKorean}</span>
             </div>
             <div className="flex-1">
-              <span className="inline-block rounded-full bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700 mb-1">
-                {god}
-              </span>
-              <p className="text-xs leading-relaxed text-foreground">
-                {TEN_GOD_DESC[god as string] ?? ''}
-              </p>
+              <Chip className="bg-indigo-100 text-indigo-700 mb-1.5">{god}</Chip>
+              <p className="text-xs leading-relaxed text-foreground">{TEN_GOD_DESC[god as string] ?? ''}</p>
             </div>
           </div>
         ))}
@@ -242,48 +240,42 @@ function TenGodsSection({ tenGods, fourPillars }: {
     </CollapsibleCard>
   )
 }
-
-// ────────────────────────────────────────────────────────────────────────────
-// 서브 컴포넌트: 십이운성 (접이식)
-// ────────────────────────────────────────────────────────────────────────────
 
 function SipIunSeongSection({ sipIunSeong, fourPillars }: {
-  sipIunSeong: SajuResult['sipIunSeong']
-  fourPillars: SajuResult['fourPillars']
+  sipIunSeong: SajuResult['sipIunSeong']; fourPillars: SajuResult['fourPillars']
 }) {
   const items = [
-    { label: '年柱', stage: sipIunSeong.year, pillar: fourPillars.year },
-    { label: '月柱', stage: sipIunSeong.month, pillar: fourPillars.month },
-    { label: '日柱', stage: sipIunSeong.day, pillar: fourPillars.day },
-    { label: '時柱', stage: sipIunSeong.hour, pillar: fourPillars.hour },
-  ].filter((item) => item.stage !== null)
+    { label: '年', stage: sipIunSeong.year, pillar: fourPillars.year },
+    { label: '月', stage: sipIunSeong.month, pillar: fourPillars.month },
+    { label: '日', stage: sipIunSeong.day, pillar: fourPillars.day },
+    { label: '時', stage: sipIunSeong.hour, pillar: fourPillars.hour },
+  ].filter((i) => i.stage !== null)
 
-  const summary = items.map((i) => `${i.label} ${i.stage}`).join(' · ')
-
+  const chips = (
+    <>
+      {items.map(({ label, stage }) => (
+        <Chip key={label} className="bg-amber-100 text-amber-700">
+          {label}柱 {stage}
+        </Chip>
+      ))}
+    </>
+  )
   return (
-    <CollapsibleCard
-      title="십이운성 (十二運星)"
-      titleSub="내 기운의 생애 주기 단계"
-      summary={summary}
-    >
-      <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground bg-muted/40 rounded-lg p-2">
-        💡 사람의 일생처럼 기운도 태어나고 자라고 쉬고 다시 태어나는 12단계를 거쳐요. 각 기둥이 어떤 단계에 있는지 보여줘요.
-      </p>
-      <div className="flex flex-col gap-2">
+    <CollapsibleCard icon="🌀" title="십이운성 (十二運星)" titleSub="내 기운의 생애 주기 단계" chips={chips}>
+      <div className="rounded-xl bg-amber-50 p-3 text-[11px] leading-relaxed text-amber-800 mb-3">
+        💡 기운도 사람처럼 태어나고 자라고 쉬고 다시 태어나는 12단계를 거쳐요. 각 기둥이 어떤 단계인지 알 수 있어요.
+      </div>
+      <div className="space-y-2">
         {items.map(({ label, stage, pillar }) => (
-          <div key={label} className="flex items-start gap-3 rounded-lg bg-muted/40 p-3">
-            <div className="flex flex-col items-center min-w-[52px]">
-              <span className="text-[10px] text-muted-foreground">{label}</span>
-              <span className="text-sm font-bold">{pillar!.stem}{pillar!.branch}</span>
+          <div key={label} className="flex items-start gap-3 rounded-xl bg-white p-3 shadow-sm">
+            <div className="flex flex-col items-center min-w-[44px]">
+              <span className="text-[10px] text-muted-foreground">{label}柱</span>
+              <span className="text-base font-bold">{pillar!.stem}{pillar!.branch}</span>
               <span className="text-[10px] text-muted-foreground">{pillar!.stemKorean}{pillar!.branchKorean}</span>
             </div>
             <div className="flex-1">
-              <span className="inline-block rounded-full bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 mb-1">
-                {stage}
-              </span>
-              <p className="text-xs leading-relaxed text-foreground">
-                {SIP_IUN_DESC[stage as string] ?? ''}
-              </p>
+              <Chip className="bg-amber-100 text-amber-700 mb-1.5">{stage}</Chip>
+              <p className="text-xs leading-relaxed text-foreground">{SIP_IUN_DESC[stage as string] ?? ''}</p>
             </div>
           </div>
         ))}
@@ -292,80 +284,75 @@ function SipIunSeongSection({ sipIunSeong, fourPillars }: {
   )
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// 서브 컴포넌트: 공망 (접이식)
-// ────────────────────────────────────────────────────────────────────────────
-
 function GongMangSection({ gongMang }: { gongMang: SajuResult['gongMang'] }) {
-  const names = gongMang.map((b) => `${BRANCHES[b].char}(${BRANCHES[b].korean}) ${BRANCHES[b].zodiac}`)
-  const summary = `${names.join(' · ')} — 이 기운이 약해지는 구간이에요`
-
+  const chips = (
+    <>
+      {gongMang.map((b, i) => (
+        <Chip key={i} className="bg-gray-100 text-gray-700">
+          {BRANCHES[b].char} {BRANCHES[b].korean} ({BRANCHES[b].zodiac}띠)
+        </Chip>
+      ))}
+    </>
+  )
   return (
-    <CollapsibleCard title="공망 (空亡)" titleSub="기운이 비어있는 지지" summary={summary}>
+    <CollapsibleCard icon="🕳️" title="공망 (空亡)" titleSub="기운이 빈 지지" chips={chips}>
       <div className="flex gap-2 mb-3">
         {gongMang.map((b, i) => (
-          <span key={i} className="rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-700">
-            {BRANCHES[b].char} {BRANCHES[b].korean} ({BRANCHES[b].zodiac}띠)
-          </span>
+          <div key={i} className="flex flex-col items-center rounded-xl bg-white px-4 py-2.5 shadow-sm border border-border">
+            <span className="text-2xl font-bold text-gray-600">{BRANCHES[b].char}</span>
+            <span className="text-xs text-muted-foreground">{BRANCHES[b].korean} ({BRANCHES[b].zodiac}띠)</span>
+          </div>
         ))}
       </div>
-      <div className="text-[11px] leading-relaxed text-muted-foreground space-y-1.5 bg-muted/40 rounded-lg p-3">
-        <p>📌 공망이란 사주에서 기운이 '비어버린' 지지를 말해요.</p>
-        <p>이 띠해이거나 이 띠 해에 태어난 인연은 인연이 깊어도 결국 떠나거나 허무함으로 끝나는 경우가 있어요.</p>
+      <div className="rounded-xl bg-gray-50 p-3 text-[11px] leading-relaxed text-gray-700 space-y-1.5">
+        <p>📌 공망이란 사주에서 기운이 <strong>비어버린</strong> 지지를 말해요.</p>
+        <p>이 띠 해이거나 이 띠 해에 태어난 인연은 깊어도 결국 떠나거나 허무하게 끝나는 경우가 있어요.</p>
         <p>금전·명예보다 <strong>정신적 성장과 내면의 충실함</strong>에 집중하는 게 훨씬 이로워요.</p>
-        <p>나쁜 것만은 아니에요 — 오히려 세속적인 것에 얽매이지 않고 자유롭게 살아갈 수 있는 기질이기도 해요.</p>
+        <p>나쁜 것만은 아니에요 — 세속적인 것에 얽매이지 않고 자유롭게 살아갈 수 있는 기질이기도 해요.</p>
       </div>
     </CollapsibleCard>
   )
 }
-
-// ────────────────────────────────────────────────────────────────────────────
-// 서브 컴포넌트: 대운 (접이식)
-// ────────────────────────────────────────────────────────────────────────────
 
 function DaewoonSection({ daewoon }: { daewoon: SajuResult['daewoon'] }) {
   const items = daewoon.slice(0, 6)
-  const first = items[0]
-  const summary = first
-    ? `${first.startAge}세부터 시작 — ${items.map((d) => `${d.startAge}세 ${STEMS[d.stemIndex].korean}${BRANCHES[d.branchIndex].korean}`).join(' · ')}`
-    : '대운 정보 없음'
-
+  const chips = (
+    <>
+      {items.slice(0, 4).map((dw, i) => {
+        const e = ELEMENT_NAMES[STEMS[dw.stemIndex].element]
+        return (
+          <Chip key={i} className={`${ELEM_BG[e]} ${ELEM_TEXT[e]}`}>
+            {dw.startAge}세 {STEMS[dw.stemIndex].korean}{BRANCHES[dw.branchIndex].korean}
+          </Chip>
+        )
+      })}
+      {items.length > 4 && <Chip className="bg-muted text-muted-foreground">+{items.length - 4}개</Chip>}
+    </>
+  )
   return (
-    <CollapsibleCard title="대운 (大運)" titleSub="10년 단위로 바뀌는 큰 운의 흐름" summary={summary}>
-      <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground bg-muted/40 rounded-lg p-2">
-        💡 대운은 10년마다 바뀌는 '큰 운'이에요. 평생 운세가 어떤 흐름으로 흘러가는지 보여줘요. 어떤 기운의 대운인지에 따라 그 시기에 집중해야 할 것들이 달라요.
-      </p>
-      <div className="flex flex-col gap-2">
+    <CollapsibleCard icon="🌊" title="대운 (大運)" titleSub="10년 단위로 바뀌는 큰 운의 흐름" chips={chips}>
+      <div className="rounded-xl bg-blue-50 p-3 text-[11px] leading-relaxed text-blue-800 mb-3">
+        💡 대운은 10년마다 바뀌는 큰 운이에요. 어떤 오행 기운이 흐르는지에 따라 그 시기에 집중해야 할 것들이 달라져요.
+      </div>
+      <div className="space-y-2">
         {items.map((dw, i) => {
-          const stemElem = ELEMENT_NAMES[STEMS[dw.stemIndex].element]
-          const branchElem = ELEMENT_NAMES[BRANCHES[dw.branchIndex].element]
+          const stemE = ELEMENT_NAMES[STEMS[dw.stemIndex].element]
+          const branchE = ELEMENT_NAMES[BRANCHES[dw.branchIndex].element]
           return (
-            <div key={i} className="rounded-lg border border-border p-3">
-              <div className="flex items-center gap-3 mb-2">
-                <div className="flex flex-col items-center min-w-[44px]">
-                  <span className="text-[10px] text-muted-foreground font-medium">{dw.startAge}세~</span>
-                  <span className={`text-lg font-bold ${ELEMENT_TEXT_COLORS[stemElem]}`}>
-                    {STEMS[dw.stemIndex].char}
-                  </span>
-                  <span className="text-base font-semibold text-foreground">
-                    {BRANCHES[dw.branchIndex].char}
-                  </span>
+            <div key={i} className="rounded-xl bg-white p-3 shadow-sm border border-border">
+              <div className="flex items-center gap-3">
+                <div className="flex flex-col items-center min-w-[52px]">
+                  <span className="text-[10px] font-semibold text-muted-foreground">{dw.startAge}세~</span>
+                  <span className={`text-xl font-bold ${ELEM_TEXT[stemE]}`}>{STEMS[dw.stemIndex].char}</span>
+                  <span className="text-lg font-semibold text-foreground">{BRANCHES[dw.branchIndex].char}</span>
+                  <span className="text-[10px] text-muted-foreground">{STEMS[dw.stemIndex].korean}{BRANCHES[dw.branchIndex].korean}</span>
                 </div>
                 <div className="flex-1">
-                  <div className="flex flex-wrap gap-1 mb-1">
-                    <span className="text-xs text-muted-foreground">
-                      {STEMS[dw.stemIndex].korean}{BRANCHES[dw.branchIndex].korean}
-                    </span>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${ELEMENT_BG_LIGHT[stemElem]} ${ELEMENT_TEXT_COLORS[stemElem]}`}>
-                      천간 {stemElem}
-                    </span>
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${ELEMENT_BG_LIGHT[branchElem]} ${ELEMENT_TEXT_COLORS[branchElem]}`}>
-                      지지 {branchElem}
-                    </span>
+                  <div className="flex gap-1 mb-1.5">
+                    <Chip className={`${ELEM_BG[stemE]} ${ELEM_TEXT[stemE]}`}>천간 {stemE}</Chip>
+                    <Chip className={`${ELEM_BG[branchE]} ${ELEM_TEXT[branchE]}`}>지지 {branchE}</Chip>
                   </div>
-                  <p className="text-[11px] leading-relaxed text-foreground">
-                    {DAEWOON_ELEM_DESC[stemElem] ?? ''}
-                  </p>
+                  <p className="text-[11px] leading-relaxed text-foreground">{DAEWOON_DESC[stemE]}</p>
                 </div>
               </div>
             </div>
@@ -377,108 +364,85 @@ function DaewoonSection({ daewoon }: { daewoon: SajuResult['daewoon'] }) {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// 유틸: AI 텍스트 파싱
+// AI 해석 섹션
 // ────────────────────────────────────────────────────────────────────────────
 
-interface AiSection {
-  title: string
-  summary: string
-  bullets: string[]
-  body: string[]
-}
+interface AiSection { title: string; summary: string; bullets: string[]; body: string[] }
 
 function parseAiText(text: string): AiSection[] {
   const sections: AiSection[] = []
-  let current: AiSection | null = null
-
+  let cur: AiSection | null = null
   for (const line of text.split('\n')) {
     if (line.startsWith('## ')) {
-      if (current) sections.push(current)
-      current = { title: line.slice(3).trim(), summary: '', bullets: [], body: [] }
-    } else if (current) {
-      const summaryMatch = line.match(/^\*\*요약\*\*[:：]\s*(.+)/)
-      if (summaryMatch) {
-        current.summary = summaryMatch[1].trim()
-      } else if (line.startsWith('- ')) {
-        current.bullets.push(line.slice(2).trim())
-      } else if (line.trim()) {
-        current.body.push(line.trim())
-      }
+      if (cur) sections.push(cur)
+      cur = { title: line.slice(3).trim(), summary: '', bullets: [], body: [] }
+    } else if (cur) {
+      const m = line.match(/^\*\*요약\*\*[:：]\s*(.+)/)
+      if (m) cur.summary = m[1].trim()
+      else if (line.startsWith('- ')) cur.bullets.push(line.slice(2).trim())
+      else if (line.trim()) cur.body.push(line.trim())
     }
   }
-  if (current) sections.push(current)
+  if (cur) sections.push(cur)
   return sections
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// 서브 컴포넌트: AI 해석 (접이식 섹션들)
-// ────────────────────────────────────────────────────────────────────────────
-
-const AI_SECTION_ICONS: Record<string, string> = {
-  연애운: '💕', 결혼운: '💍', 금전운: '💰',
-  직업운: '💼', 건강운: '🌿', '이 사주의 핵심 조언': '✨',
+const AI_THEME: Record<string, { bg: string; border: string; title: string; badge: string; icon: string }> = {
+  연애운:           { bg: 'bg-pink-50',   border: 'border-pink-100',   title: 'text-pink-700',   badge: 'bg-pink-100 text-pink-700',   icon: '💕' },
+  결혼운:           { bg: 'bg-purple-50', border: 'border-purple-100', title: 'text-purple-700', badge: 'bg-purple-100 text-purple-700', icon: '💍' },
+  금전운:           { bg: 'bg-yellow-50', border: 'border-yellow-100', title: 'text-yellow-700', badge: 'bg-yellow-100 text-yellow-700', icon: '💰' },
+  직업운:           { bg: 'bg-blue-50',   border: 'border-blue-100',   title: 'text-blue-700',   badge: 'bg-blue-100 text-blue-700',   icon: '💼' },
+  건강운:           { bg: 'bg-green-50',  border: 'border-green-100',  title: 'text-green-700',  badge: 'bg-green-100 text-green-700',  icon: '🌿' },
+  '이 사주의 핵심 조언': { bg: 'bg-indigo-50', border: 'border-indigo-100', title: 'text-indigo-700', badge: 'bg-indigo-100 text-indigo-700', icon: '✨' },
 }
 
-function AiSection({ section, isLast, isStreaming }: {
-  section: AiSection
-  isLast: boolean
-  isStreaming: boolean
+function AiSectionCard({ section, isLast, isStreaming }: {
+  section: AiSection; isLast: boolean; isStreaming: boolean
 }) {
   const [open, setOpen] = useState(isLast)
-  const icon = AI_SECTION_ICONS[section.title] ?? '📌'
+  const theme = AI_THEME[section.title] ?? { bg: 'bg-muted', border: 'border-border', title: 'text-foreground', badge: 'bg-muted text-foreground', icon: '📌' }
   const isCoreAdvice = section.title === '이 사주의 핵심 조언'
 
   return (
-    <div className="rounded-xl border border-indigo-100 bg-white overflow-hidden shadow-sm">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-start gap-3 px-4 py-3 text-left"
-      >
-        <span className="text-lg shrink-0">{icon}</span>
+    <div className={`overflow-hidden rounded-2xl border ${theme.border} ${theme.bg} shadow-sm`}>
+      <button type="button" onClick={() => setOpen((v) => !v)}
+        className="flex w-full items-start gap-3 px-4 py-3.5 text-left">
+        <span className="text-xl shrink-0">{theme.icon}</span>
         <div className="flex-1 min-w-0">
-          <span className="text-sm font-bold text-indigo-700">{section.title}</span>
-          {section.summary && (
-            <p className="mt-0.5 text-xs font-medium text-foreground">{section.summary}</p>
-          )}
-          {!section.summary && isStreaming && isLast && (
-            <span className="inline-block h-3 w-0.5 animate-pulse bg-indigo-400 ml-1" />
-          )}
+          <span className={`text-sm font-bold ${theme.title}`}>{section.title}</span>
+          {section.summary ? (
+            <p className="mt-0.5 text-xs font-medium text-foreground/80 leading-snug">{section.summary}</p>
+          ) : isStreaming && isLast ? (
+            <span className="inline-block h-3 w-0.5 animate-pulse bg-current opacity-60 ml-1" />
+          ) : null}
         </div>
-        <ChevronDown
-          size={15}
-          className={`mt-1 shrink-0 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-        />
+        <ChevronDown size={15} className={`mt-1 shrink-0 text-muted-foreground transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="border-t border-indigo-50 px-4 pb-4 pt-3 bg-indigo-50/30">
+        <div className="border-t border-white/60 bg-white/60 px-4 pb-4 pt-3">
           {isCoreAdvice && section.bullets.length > 0 ? (
             <ul className="space-y-2">
-              {section.bullets.map((bullet, i) => (
+              {section.bullets.map((b, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm leading-relaxed text-foreground">
-                  <span className="mt-0.5 shrink-0 text-indigo-400">•</span>
-                  <span>{bullet}</span>
+                  <span className={`mt-1 shrink-0 h-1.5 w-1.5 rounded-full ${theme.badge.split(' ')[0]}`} />
+                  <span>{b}</span>
                 </li>
               ))}
-              {isStreaming && isLast && (
-                <span className="inline-block h-4 w-0.5 animate-pulse bg-indigo-400" />
-              )}
+              {isStreaming && isLast && <span className="inline-block h-4 w-0.5 animate-pulse bg-indigo-400" />}
             </ul>
           ) : (
             <div className="space-y-2">
               {section.body.map((line, i) => (
                 <p key={i} className="text-sm leading-relaxed text-foreground">{line}</p>
               ))}
-              {section.bullets.map((bullet, i) => (
-                <li key={`b${i}`} className="flex items-start gap-2 text-sm leading-relaxed text-foreground list-none">
-                  <span className="mt-0.5 shrink-0 text-indigo-400">•</span>
-                  <span>{bullet}</span>
-                </li>
+              {section.bullets.map((b, i) => (
+                <div key={`b${i}`} className="flex items-start gap-2 text-sm leading-relaxed text-foreground">
+                  <span className={`mt-1.5 shrink-0 h-1.5 w-1.5 rounded-full ${theme.badge.split(' ')[0]}`} />
+                  <span>{b}</span>
+                </div>
               ))}
-              {isStreaming && isLast && (
-                <span className="inline-block h-4 w-0.5 animate-pulse bg-indigo-400" />
-              )}
+              {isStreaming && isLast && <span className="inline-block h-4 w-0.5 animate-pulse opacity-60" />}
             </div>
           )}
         </div>
@@ -488,46 +452,33 @@ function AiSection({ section, isLast, isStreaming }: {
 }
 
 function AiInterpretation({ text, isStreaming, isDone, error }: {
-  text: string
-  isStreaming: boolean
-  isDone: boolean
-  error: string
+  text: string; isStreaming: boolean; isDone: boolean; error: string
 }) {
   const sections = parseAiText(text)
-
   return (
-    <div className="rounded-xl border border-indigo-100 bg-gradient-to-b from-indigo-50/50 to-white p-4">
-      <div className="mb-4 flex items-center gap-2">
-        <span className="text-sm font-bold text-indigo-700">사주 해석</span>
-        {isStreaming && (
-          <Loader2 size={12} className="ml-auto animate-spin text-indigo-400" />
-        )}
-      </div>
-
-      {error && <p className="text-sm text-destructive">{error}</p>}
-
+    <div>
+      {error && (
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/5 p-4">
+          <p className="text-sm text-destructive">{error}</p>
+        </div>
+      )}
       {!error && sections.length > 0 && (
-        <div className="flex flex-col gap-2">
-          {sections.map((section, i) => (
-            <AiSection
-              key={section.title}
-              section={section}
-              isLast={i === sections.length - 1}
-              isStreaming={isStreaming}
-            />
+        <div className="space-y-2">
+          {sections.map((s, i) => (
+            <AiSectionCard key={s.title} section={s} isLast={i === sections.length - 1} isStreaming={isStreaming} />
           ))}
         </div>
       )}
-
       {!error && !text && isStreaming && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Loader2 size={14} className="animate-spin" />
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-card py-8 text-sm text-muted-foreground">
+          <Loader2 size={16} className="animate-spin" />
           <span>사주를 해석하는 중이에요...</span>
         </div>
       )}
-
       {!error && !text && isDone && (
-        <p className="text-sm text-muted-foreground">해석을 불러올 수 없어요. API 키를 확인해주세요.</p>
+        <div className="rounded-2xl border border-border bg-card p-4">
+          <p className="text-sm text-muted-foreground text-center">AI 해석을 불러올 수 없어요.</p>
+        </div>
       )}
     </div>
   )
@@ -543,7 +494,6 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
   const [day, setDay] = useState('1')
   const [hourValue, setHourValue] = useState('')
   const [gender, setGender] = useState<'male' | 'female'>('male')
-
   const [status, setStatus] = useState<Status>('idle')
   const [sajuResult, setSajuResult] = useState<SajuResult | null>(null)
   const [aiText, setAiText] = useState('')
@@ -554,37 +504,24 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
-    const y = parseInt(year)
-    const m = parseInt(month)
-    const d = parseInt(day)
+    const y = parseInt(year), m = parseInt(month), d = parseInt(day)
     const hour = hourValue !== '' ? parseInt(hourValue) : undefined
     if (isNaN(y) || y < 1900 || y > 2020) return
-
-    setAiText('')
-    setAiError('')
-    setErrorMsg('')
-    setSajuResult(null)
-    setStatus('loading')
-
+    setAiText(''); setAiError(''); setErrorMsg(''); setSajuResult(null); setStatus('loading')
     try {
       const res = await fetch('/api/saju/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ year: y, month: m, day: d, hour, gender }),
       })
       if (!res.ok || !res.body) throw new Error(`서버 오류 (${res.status})`)
-
       const reader = res.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
-
       while (true) {
         const { done, value } = await reader.read()
         if (done) break
         buffer += decoder.decode(value, { stream: true })
-        const lines = buffer.split('\n')
-        buffer = lines.pop() ?? ''
-
+        const lines = buffer.split('\n'); buffer = lines.pop() ?? ''
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue
           const raw = line.slice(6).trim()
@@ -595,9 +532,9 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
               | { type: 'text'; text: string }
               | { type: 'ai_error'; message: string }
             if (evt.type === 'saju') { setSajuResult(evt.payload); setStatus('streaming') }
-            else if (evt.type === 'text') setAiText((prev) => prev + evt.text)
+            else if (evt.type === 'text') setAiText((p) => p + evt.text)
             else if (evt.type === 'ai_error') setAiError('AI 해석 오류: ' + evt.message)
-          } catch { /* JSON 파싱 오류 무시 */ }
+          } catch { /* ignore */ }
         }
       }
       setStatus('done')
@@ -608,8 +545,7 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
   }
 
   function handleReset() {
-    setSajuResult(null); setAiText(''); setAiError('')
-    setErrorMsg(''); setStatus('idle'); setIsSaved(false)
+    setSajuResult(null); setAiText(''); setAiError(''); setErrorMsg(''); setStatus('idle'); setIsSaved(false)
   }
 
   async function handleSave() {
@@ -617,8 +553,7 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
     setIsSaving(true)
     try {
       const res = await fetch('/api/readings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sajuResult, aiText }),
       })
       if (res.ok) setIsSaved(true)
@@ -631,11 +566,8 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
       <form onSubmit={handleSubmit} className="flex flex-col gap-5 px-4 py-5">
         <div>
           <h1 className="text-xl font-bold">사주 분석</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            생년월일을 입력하면 사주팔자와 운세 해석을 알려드려요
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">생년월일을 입력하면 사주팔자와 운세 해석을 알려드려요</p>
         </div>
-
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium">성별</label>
           <div className="flex gap-2">
@@ -647,23 +579,20 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
             ))}
           </div>
         </div>
-
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium" htmlFor="year">출생 연도</label>
           <input id="year" type="number" inputMode="numeric" placeholder="예) 1990"
-            value={year} onChange={(e) => setYear(e.target.value)}
-            min={1900} max={2020} required
-            className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" />
+            value={year} onChange={(e) => setYear(e.target.value)} min={1900} max={2020} required
+            className="w-full rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ring-offset-background" />
         </div>
-
         <div className="flex gap-3">
           {[{ id: 'month', label: '월', value: month, set: setMonth, count: 12, unit: '월' },
-            { id: 'day', label: '일', value: day, set: setDay, count: 31, unit: '일' }].map(({ id, label, value, set, count, unit }) => (
+            { id: 'day',   label: '일', value: day,   set: setDay,   count: 31, unit: '일' }].map(({ id, label, value, set, count, unit }) => (
             <div key={id} className="flex flex-1 flex-col gap-1.5">
               <label className="text-sm font-medium" htmlFor={id}>{label}</label>
               <div className="relative">
                 <select id={id} value={value} onChange={(e) => set(e.target.value)}
-                  className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                  className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ring-offset-background">
                   {Array.from({ length: count }, (_, i) => (
                     <option key={i + 1} value={i + 1}>{i + 1}{unit}</option>
                   ))}
@@ -673,24 +602,20 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
             </div>
           ))}
         </div>
-
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium" htmlFor="hour">
             태어난 시간 <span className="font-normal text-muted-foreground">(선택)</span>
           </label>
           <div className="relative">
             <select id="hour" value={hourValue} onChange={(e) => setHourValue(e.target.value)}
-              className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none ring-offset-background focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-              {HOURS.map(({ label, value }) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
+              className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ring-offset-background">
+              {HOURS.map(({ label, value }) => <option key={value} value={value}>{label}</option>)}
             </select>
             <ChevronDown size={14} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
           </div>
         </div>
-
         <button type="submit"
-          className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 py-3.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80">
+          className="mt-2 flex w-full items-center justify-center rounded-xl bg-indigo-600 py-3.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 active:opacity-80">
           사주 분석하기
         </button>
       </form>
@@ -711,8 +636,7 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
       <div className="flex flex-col gap-4 px-4 py-5">
         <div className="flex items-center justify-between">
           <h1 className="text-lg font-bold">사주 분석</h1>
-          <button onClick={handleReset}
-            className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50">
+          <button onClick={handleReset} className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50">
             <RotateCcw size={12} /> 다시 하기
           </button>
         </div>
@@ -728,15 +652,14 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
     <div className="flex flex-col gap-3 px-4 py-5">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-bold">사주 분석 결과</h1>
-        <button onClick={handleReset}
-          className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50">
+        <button onClick={handleReset} className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50">
           <RotateCcw size={12} /> 다시 하기
         </button>
       </div>
 
       {sajuResult && (
         <>
-          {/* 사주 4기둥 — 항상 표시 */}
+          {/* 4기둥 */}
           <div className="grid grid-cols-4 gap-2">
             <PillarCard label="年柱" pillar={sajuResult.fourPillars.year} />
             <PillarCard label="月柱" pillar={sajuResult.fourPillars.month} />
@@ -744,22 +667,22 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
             {sajuResult.fourPillars.hour ? (
               <PillarCard label="時柱" pillar={sajuResult.fourPillars.hour} />
             ) : (
-              <div className="flex flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-border px-2 py-3">
+              <div className="flex flex-col items-center justify-center gap-1 rounded-2xl border border-dashed border-border px-2 py-3">
                 <span className="text-xs text-muted-foreground">時柱</span>
                 <span className="text-xs text-muted-foreground">미입력</span>
               </div>
             )}
           </div>
 
-          {/* 일간 배지 — 항상 표시 */}
+          {/* 일간 */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-muted-foreground">일간(日干) — 사주의 주인공</span>
-            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${ELEMENT_BG_LIGHT[sajuResult.dayMaster.element]} ${ELEMENT_TEXT_COLORS[sajuResult.dayMaster.element]}`}>
+            <Chip className={`${ELEM_BG[sajuResult.dayMaster.element]} ${ELEM_TEXT[sajuResult.dayMaster.element]} font-semibold`}>
               {sajuResult.dayMaster.stem}({sajuResult.dayMaster.stemKorean}) · {sajuResult.dayMaster.element} {sajuResult.dayMaster.yinYang}
-            </span>
+            </Chip>
           </div>
 
-          {/* 접이식 알고리즘 섹션들 */}
+          {/* 접이식 알고리즘 섹션 */}
           <ElementBalanceSection balance={sajuResult.elementBalance} />
           <TenGodsSection tenGods={sajuResult.tenGods} fourPillars={sajuResult.fourPillars} />
           <SipIunSeongSection sipIunSeong={sajuResult.sipIunSeong} fourPillars={sajuResult.fourPillars} />
@@ -769,21 +692,16 @@ export default function SajuClient({ isLoggedIn = false }: { isLoggedIn?: boolea
           {/* 구분선 */}
           <div className="flex items-center gap-3 my-1">
             <div className="h-px flex-1 bg-border" />
-            <span className="text-xs text-muted-foreground">운세 해석</span>
+            <span className="text-xs font-medium text-muted-foreground">운세 해석</span>
             <div className="h-px flex-1 bg-border" />
           </div>
 
           {/* AI 해석 */}
-          <AiInterpretation
-            text={aiText}
-            isStreaming={status === 'streaming'}
-            isDone={status === 'done'}
-            error={aiError}
-          />
+          <AiInterpretation text={aiText} isStreaming={status === 'streaming'} isDone={status === 'done'} error={aiError} />
 
-          {/* 저장 버튼 */}
+          {/* 저장 */}
           {status === 'done' && (
-            <div className="rounded-xl border border-border bg-card p-4">
+            <div className="rounded-2xl border border-border bg-card p-4">
               {isLoggedIn ? (
                 isSaved ? (
                   <div className="flex items-center justify-center gap-2 text-sm font-medium text-green-600">

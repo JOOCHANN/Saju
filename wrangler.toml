@@ -8,5 +8,10 @@ assets = { directory = ".open-next/assets" }
 [vars]
 NEXT_PUBLIC_APP_URL = "https://saju.pages.dev"
 
+# Smart Placement: OpenAI API 등 외부 서비스 호출 시
+# Worker가 해당 서비스 서버(미국) 근처 데이터센터에서 실행 → 지역 제한 우회
+[placement]
+mode = "smart"
+
 # 로컬 개발 시 환경 변수는 .dev.vars 파일에 정의
 # (절대 git에 커밋하지 말 것)

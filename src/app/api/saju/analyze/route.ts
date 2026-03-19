@@ -60,7 +60,7 @@ export async function POST(request: Request) {
         const openai = new OpenAI({ apiKey })
         const messageStream = await openai.chat.completions.create({
           model: 'gpt-4o-mini',
-          max_tokens: 1500,
+          max_tokens: 2000,
           stream: true,
           messages: [
             { role: 'system', content: SAJU_SYSTEM_PROMPT },
