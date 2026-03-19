@@ -50,7 +50,7 @@ export async function GET() {
 // ── PUT: 프로필 저장/수정 ───────────────────────────────────────────────────
 
 const profileSchema = z.object({
-  year: z.number().int().min(1900).max(2020),
+  year: z.number().int().min(1900).max(2030),
   month: z.number().int().min(1).max(12),
   day: z.number().int().min(1).max(31),
   hour: z.number().int().min(0).max(23).optional(),

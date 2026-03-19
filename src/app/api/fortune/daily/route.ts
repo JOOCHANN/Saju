@@ -171,7 +171,7 @@ ${scoreContext}
 
 const querySchema = z.object({
   zodiac: z.string().min(1).optional(),
-  year: z.coerce.number().int().min(1900).max(2020).optional(),
+  year: z.coerce.number().int().min(1900).max(2030).optional(),
   month: z.coerce.number().int().min(1).max(12).optional(),
   day: z.coerce.number().int().min(1).max(31).optional(),
 })
