@@ -12,21 +12,23 @@ export const dynamic = 'force-dynamic'
 
 export interface AdultFortune {
   date: string
-  energySummary: string      // 🔥 오늘의 관계 에너지 한 줄
-  attractiveness: string     // 💋 매력 & 끌림 분석
-  psychFlow: string          // 🧠 관계 심리 흐름
-  actionGuide: {             // 🎯 행동 가이드
+  status: 'single' | 'crush' | 'dating'
+  energySummary: string        // 🔥 오늘의 관계 에너지 한 줄
+  tension: string              // 💫 관계 텐션 (주도권·거리감·긴장감)
+  actionGuide: {               // 🎯 행동 가이드 (시간·방식·조건 포함)
     contact: string
-    timing: string
-    avoid: string
+    meeting: string
+    conversation: string
   }
-  warning: string            // ⚠️ 주의 포인트
-  timeFlow: {                // ⏰ 시간대별 관계 흐름
+  timeFlow: {                  // ⏰ 시간대별 관계 흐름
     morning: string
     afternoon: string
     night: string
   }
-  score: number              // 📊 성인 관계 운 점수 (1~100)
+  psychAnalysis: string        // 🧠 관계 심리 분석
+  warning: string              // ⚠️ 주의 포인트
+  score: number                // 📊 관계 운 점수 (1~100)
+  scoreInterpretation: string  // 점수 해석 (상위 % + 의미)
   personalized: boolean
 }
 
@@ -49,19 +51,39 @@ function makeSeed(dateStr: string, extra: number): number {
 
 function computeScore(seed: number): number {
   const rng = lcg(seed)
-  // 40점 이상 확률 84%
   return Math.floor(Math.max(rng(), rng()) * 100) + 1
 }
 
 // ────────────────────────────────────────────────────────────────────────────
-// AI 운세 텍스트 생성
+// 상태별 프롬프트 분기
 // ────────────────────────────────────────────────────────────────────────────
+
+const STATUS_CONTEXT: Record<string, string> = {
+  single: `현재 상태: 솔로
+→ 새로운 인연 가능성, 첫 인상 관리, 접근 전략 중심으로 작성
+→ "언제 어디서 어떻게 접근할지" 구체적 행동 포함
+→ 새 인연이 나타날 수 있는 상황·장소 힌트 포함`,
+
+  crush: `현재 상태: 썸 단계
+→ 밀당 타이밍, 주도권 이동, 고백 가능성 중심으로 작성
+→ "지금 밀어야 하는가 vs 기다려야 하는가" 명확하게 판단
+→ 상대의 심리 흐름 분석 포함`,
+
+  dating: `현재 상태: 연애 중
+→ 관계 깊이, 감정 균형, 갈등 예방 중심으로 작성
+→ "오늘 파트너와 어떻게 연결될 것인가" 구체적으로
+→ 관계 유지·강화를 위한 실질적 행동 포함`,
+}
 
 const STATUS_LABEL: Record<string, string> = {
   single: '솔로',
   crush: '썸',
   dating: '연애 중',
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// AI 운세 텍스트 생성
+// ────────────────────────────────────────────────────────────────────────────
 
 async function generateAdultFortune(
   date: string,
@@ -70,7 +92,7 @@ async function generateAdultFortune(
   status: string,
   score: number,
   sajuContext?: string,
-): Promise<Omit<AdultFortune, 'date' | 'score' | 'personalized'>> {
+): Promise<Omit<AdultFortune, 'date' | 'score' | 'scoreInterpretation' | 'status' | 'personalized'>> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error('AI_KEY_MISSING')
 
@@ -82,42 +104,48 @@ async function generateAdultFortune(
 
   const genderKo = gender === 'male' ? '남성' : '여성'
   const statusKo = STATUS_LABEL[status] ?? '알 수 없음'
+  const statusGuide = STATUS_CONTEXT[status] ?? ''
   const scoreDesc = score >= 80 ? '매우 강함' : score >= 60 ? '좋음' : score >= 40 ? '보통' : '약함'
   const sajuLine = sajuContext ? `\n사주 정보:\n${sajuContext}\n` : ''
 
-  const prompt = `오늘(${date}) ${year}년생 ${genderKo}(현재 상태: ${statusKo})의 관계·연애·매력 운세를 아래 JSON 형식으로 작성해주세요.${sajuLine}
-오늘의 관계 운 점수: ${score}점 (${scoreDesc})
+  const prompt = `오늘(${date}) ${year}년생 ${genderKo}의 관계 운세를 아래 JSON 형식으로 작성해주세요.${sajuLine}
 
-작성 원칙:
-- 관계, 감정, 매력, 타이밍, 끌림 중심으로 서술
-- 직설적이되 품위 있게 (저급한 표현, 신체 묘사 절대 금지)
-- "유혹", "끌림", "긴장감", "거리감", "감정 흐름" 같은 단어 적극 활용
-- 현재 상태(${statusKo})를 반드시 반영한 맞춤 내용
-- 읽는 사람이 "나 얘기 맞는데?" 느낌 들게 구체적으로
-- 낮은 점수는 솔직하게, 높은 점수는 기회를 강조
-${sajuContext ? '- 사주 특성을 반영해 개인화된 관계 흐름 분석' : ''}
+[상태별 분기]
+${statusGuide}
+
+관계 운 점수: ${score}점 (${scoreDesc})
+
+[작성 원칙]
+- 이 서비스의 목표: "오늘 관계에서 어떻게 행동할지 알려주는 의사결정 도구"
+- 읽는 사람이 "내 얘기 같다 + 오늘 써먹을 수 있다" 느끼게 작성
+- 직설적이되 저급하지 않게 — 심리 분석 느낌
+- 추상적 표현 금지 (예: "조심하세요" → X)
+- 신체 묘사·성행위 묘사 절대 금지
+- 관계 텐션은 "주도권·거리감·긴장감·감정 깊이"로만 표현
+- 현재 상태(${statusKo})가 모든 섹션에 명확히 반영되어야 함
+${sajuContext ? '- 사주 특성을 반영해 개인화 강화' : ''}
 
 반드시 아래 JSON만 응답 (마크다운/코드블록 금지):
 {
-  "energySummary": "오늘의 관계 에너지 한 줄 요약 (25자 이내, 구체적 상황/감정 포함)",
-  "attractiveness": "오늘 내가 발산하는 매력과 상대에게 보이는 방식, 끌림이 발생하는 흐름 (3~4문장)",
-  "psychFlow": "상대와의 거리감 변화, 밀당·감정 흐름·주도권 분석 (3~4문장)",
+  "energySummary": "오늘의 관계 에너지 한 줄 (25자 이내, ${statusKo} 상황에 맞는 구체적 묘사)",
+  "tension": "관계 텐션 분석 — 오늘 주도권은 누구에게 있는지, 거리감이 좁혀지는지 유지되는지, 긴장감 수준, 감정 깊이 방향 (3~4문장, ${statusKo} 맞춤)",
   "actionGuide": {
-    "contact": "연락해야 하는지 기다려야 하는지 구체적 조언 (2문장)",
-    "timing": "만남에 좋은 타이밍과 장소 분위기 (2문장)",
-    "avoid": "오늘 피해야 할 행동이나 말 (2문장)"
+    "contact": "연락: 언제(구체적 시간대) + 어떻게(메시지 톤/방식) + 어떤 상황에서 (2문장)",
+    "meeting": "만남: 언제(요일/시간) + 어디서(장소 분위기) + 어떤 분위기로 (2문장)",
+    "conversation": "대화: 어떤 주제로 + 질문 vs 공유 비율 + 피해야 할 말 (2문장)"
   },
-  "warning": "관계가 틀어질 수 있는 요소, 감정 오버·집착·오해 주의사항 (2~3문장)",
   "timeFlow": {
-    "morning": "오전(06~12시) 관계 에너지 + 추천 행동 (2문장)",
-    "afternoon": "오후(12~18시) 관계 에너지 + 추천 행동 (2문장)",
-    "night": "저녁(18~24시) 관계 에너지 + 추천 행동 (2문장)"
-  }
+    "morning": "오전(06~12시) 관계 에너지 + ${statusKo}에게 추천 행동 (2문장)",
+    "afternoon": "오후(12~18시) 관계 에너지 + ${statusKo}에게 추천 행동 (2문장)",
+    "night": "저녁(18~24시) 관계 에너지 + ${statusKo}에게 추천 행동 (2문장)"
+  },
+  "psychAnalysis": "관계 심리 분석 — ${statusKo} 상황에서 오늘 상대(또는 잠재적 인연)의 심리 흐름, 나의 감정 패턴, 관계 역학 (3~4문장)",
+  "warning": "${statusKo} 상황에서 오늘 관계가 틀어질 수 있는 구체적 요소와 대처법 (2~3문장)"
 }`
 
   const message = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
-    max_tokens: 2000,
+    max_tokens: 2200,
     messages: [{ role: 'user', content: prompt }],
   })
 
@@ -131,20 +159,34 @@ ${sajuContext ? '- 사주 특성을 반영해 개인화된 관계 흐름 분석'
 
   return {
     energySummary: String(p.energySummary ?? ''),
-    attractiveness: String(p.attractiveness ?? ''),
-    psychFlow: String(p.psychFlow ?? ''),
+    tension: String(p.tension ?? ''),
     actionGuide: {
       contact: String(ag.contact ?? ''),
-      timing: String(ag.timing ?? ''),
-      avoid: String(ag.avoid ?? ''),
+      meeting: String(ag.meeting ?? ''),
+      conversation: String(ag.conversation ?? ''),
     },
-    warning: String(p.warning ?? ''),
     timeFlow: {
       morning: String(tf.morning ?? ''),
       afternoon: String(tf.afternoon ?? ''),
       night: String(tf.night ?? ''),
     },
+    psychAnalysis: String(p.psychAnalysis ?? ''),
+    warning: String(p.warning ?? ''),
   }
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// 점수 해석 생성 (서버에서 결정론적으로 계산)
+// ────────────────────────────────────────────────────────────────────────────
+
+function buildScoreInterpretation(score: number): string {
+  const percentile = Math.max(5, Math.round((1 - score / 100) * 100))
+
+  if (score >= 85) return `상위 ${percentile}% 수준 — 관계 진전·새 인연 모두에서 강한 끌림 에너지가 흐르는 날`
+  if (score >= 70) return `상위 ${percentile}% 수준 — 평소보다 관계 진전 가능성이 높고 감정 표현이 잘 통하는 날`
+  if (score >= 55) return `상위 ${percentile}% 수준 — 큰 변화보다 관계를 안정적으로 유지하기 좋은 날`
+  if (score >= 40) return `상위 ${percentile}% 수준 — 감정 소비를 줄이고 자신에게 집중하는 것이 유리한 날`
+  return `상위 ${percentile}% 수준 — 관계보다 내면 정리가 먼저인 날, 큰 결정은 내일로`
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -176,9 +218,8 @@ export async function GET(request: Request) {
   const { year, month, day, gender, status } = parsed.data
   const date = getTodayKST()
 
-  // 캐시 키 (날짜 + 생년월일 + 성별 + 상태)
   const birthKey = month && day ? `${year}-${month}-${day}` : month ? `${year}-${month}` : `${year}`
-  const cacheKey = `fortune-adult:v1:${date}:${birthKey}:${gender}:${status}`
+  const cacheKey = `fortune-adult:v2:${date}:${birthKey}:${gender}:${status}`
 
   // ── Redis 캐시 확인 ────────────────────────────────────────────────────
   if (redis) {
@@ -192,11 +233,11 @@ export async function GET(request: Request) {
 
   // ── 점수 계산 ──────────────────────────────────────────────────────────
   const seedExtra = year * 10000 + (month ?? 0) * 100 + (day ?? 0)
-  // gender/status도 시드에 반영
   const genderOffset = gender === 'male' ? 3001 : 5003
   const statusOffset = status === 'single' ? 1001 : status === 'crush' ? 2003 : 3007
   const seed = makeSeed(date, seedExtra + genderOffset + statusOffset)
   const score = computeScore(seed)
+  const scoreInterpretation = buildScoreInterpretation(score)
 
   // ── 사주 컨텍스트 (생년월일 완전 입력 시) ──────────────────────────────
   let sajuContext: string | undefined
@@ -217,8 +258,8 @@ export async function GET(request: Request) {
     }
   }
 
-  // ── AI 텍스트 생성 ────────────────────────────────────────────────────
-  let textContent: Omit<AdultFortune, 'date' | 'score' | 'personalized'>
+  // ── AI 텍스트 생성 ──────────────────────────────────────────────────────
+  let textContent: Omit<AdultFortune, 'date' | 'score' | 'scoreInterpretation' | 'status' | 'personalized'>
   try {
     textContent = await generateAdultFortune(date, year, gender, status, score, sajuContext)
   } catch (err) {
@@ -234,8 +275,10 @@ export async function GET(request: Request) {
 
   const fortune: AdultFortune = {
     date,
+    status,
     ...textContent,
     score,
+    scoreInterpretation,
     personalized: !!sajuContext,
   }
 

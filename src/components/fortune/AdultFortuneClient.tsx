@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, Loader2, RefreshCw, Flame } from 'lucide-react'
+import { ChevronDown, Flame, Loader2, RefreshCw } from 'lucide-react'
 import type { AdultFortune } from '@/app/api/fortune/adult/route'
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -9,7 +9,7 @@ import type { AdultFortune } from '@/app/api/fortune/adult/route'
 // ────────────────────────────────────────────────────────────────────────────
 
 const CURRENT_YEAR = new Date().getFullYear()
-const MAX_BIRTH_YEAR = CURRENT_YEAR - 18 // 성인만 이용 가능
+const MAX_BIRTH_YEAR = CURRENT_YEAR - 18
 const MIN_BIRTH_YEAR = 1930
 
 const YEARS = Array.from(
@@ -17,24 +17,40 @@ const YEARS = Array.from(
   (_, i) => MAX_BIRTH_YEAR - i,
 )
 
+const STATUS_BADGE: Record<string, string> = {
+  single: '솔로 💔',
+  crush: '썸 💘',
+  dating: '연애 중 ❤️',
+}
+
 // ────────────────────────────────────────────────────────────────────────────
 // 서브 컴포넌트
 // ────────────────────────────────────────────────────────────────────────────
 
-function ScoreBar({ score }: { score: number }) {
+function ScoreSection({ score, interpretation }: { score: number; interpretation: string }) {
+  const percentile = Math.max(5, Math.round((1 - score / 100) * 100))
   const color =
     score >= 80 ? 'bg-rose-500' :
     score >= 60 ? 'bg-pink-400' :
     score >= 40 ? 'bg-orange-400' : 'bg-gray-400'
+
   return (
-    <div className="flex items-center gap-2">
-      <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+    <div className="rounded-2xl border border-border bg-card p-4">
+      <p className="text-sm font-bold mb-3">📊 관계 운 점수</p>
+      <div className="flex items-end gap-3 mb-2">
+        <span className="text-4xl font-bold leading-none text-rose-500">{score}</span>
+        <span className="text-sm text-muted-foreground mb-0.5">/ 100점</span>
+        <span className="ml-auto rounded-full bg-rose-100 px-2.5 py-1 text-xs font-bold text-rose-600">
+          상위 {percentile}%
+        </span>
+      </div>
+      <div className="h-2 w-full overflow-hidden rounded-full bg-muted mb-2.5">
         <div
           className={`h-full rounded-full transition-all duration-700 ${color}`}
           style={{ width: `${score}%` }}
         />
       </div>
-      <span className="text-xs font-bold text-foreground w-12 text-right">{score}점</span>
+      <p className="text-xs leading-relaxed text-muted-foreground">{interpretation}</p>
     </div>
   )
 }
@@ -51,11 +67,16 @@ function AdultFortuneCard({ fortune }: { fortune: AdultFortune }) {
           <div className="flex-1 min-w-0">
             <p className="text-xs opacity-80">{fortune.date} 관계 운세</p>
             <p className="text-xl font-bold mt-0.5">오늘의 관계 에너지</p>
-            {fortune.personalized && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold mt-1.5">
-                <Flame size={9} /> 사주 맞춤 분석
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className="rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-semibold">
+                {STATUS_BADGE[fortune.status]}
               </span>
-            )}
+              {fortune.personalized && (
+                <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-semibold">
+                  <Flame size={9} className="inline mr-0.5" />사주 맞춤
+                </span>
+              )}
+            </div>
           </div>
           <div className="text-right shrink-0">
             <p className="text-3xl font-bold leading-none">{fortune.score}</p>
@@ -65,36 +86,27 @@ function AdultFortuneCard({ fortune }: { fortune: AdultFortune }) {
             </span>
           </div>
         </div>
-        <div className="mt-3 border-t border-white/20 pt-3">
-          <ScoreBar score={fortune.score} />
-        </div>
       </div>
 
-      {/* ── 오늘의 관계 에너지 한 줄 ── */}
+      {/* 1. 🔥 오늘의 관계 에너지 */}
       <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3.5">
         <p className="text-[11px] font-bold text-rose-500 mb-1">🔥 오늘의 관계 에너지</p>
         <p className="text-[15px] font-bold text-rose-900 leading-snug">"{fortune.energySummary}"</p>
       </div>
 
-      {/* ── 매력 & 끌림 분석 ── */}
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <p className="text-sm font-bold mb-2.5">💋 매력 &amp; 끌림 분석</p>
-        <p className="text-sm leading-relaxed text-muted-foreground">{fortune.attractiveness}</p>
+      {/* 2. 💫 관계 텐션 */}
+      <div className="rounded-2xl border border-purple-200 bg-purple-50 p-4">
+        <p className="text-sm font-bold text-purple-700 mb-2">💫 관계 텐션</p>
+        <p className="text-sm leading-relaxed text-purple-900">{fortune.tension}</p>
       </div>
 
-      {/* ── 관계 심리 흐름 ── */}
-      <div className="rounded-2xl border border-border bg-card p-4">
-        <p className="text-sm font-bold mb-2.5">🧠 관계 심리 흐름</p>
-        <p className="text-sm leading-relaxed text-muted-foreground">{fortune.psychFlow}</p>
-      </div>
-
-      {/* ── 행동 가이드 ── */}
+      {/* 3. 🎯 행동 가이드 */}
       <div className="rounded-2xl border border-border bg-card p-4 flex flex-col gap-3">
         <p className="text-sm font-bold">🎯 행동 가이드</p>
         {[
-          { icon: '📱', label: '연락 타이밍', text: fortune.actionGuide.contact },
-          { icon: '📍', label: '만남 타이밍', text: fortune.actionGuide.timing },
-          { icon: '🚫', label: '피해야 할 것', text: fortune.actionGuide.avoid },
+          { icon: '📱', label: '연락', text: fortune.actionGuide.contact },
+          { icon: '📍', label: '만남', text: fortune.actionGuide.meeting },
+          { icon: '💬', label: '대화', text: fortune.actionGuide.conversation },
         ].map(({ icon, label, text }) => (
           <div key={label} className="flex gap-2.5">
             <span className="text-base shrink-0 mt-0.5">{icon}</span>
@@ -106,7 +118,7 @@ function AdultFortuneCard({ fortune }: { fortune: AdultFortune }) {
         ))}
       </div>
 
-      {/* ── 시간대별 관계 흐름 ── */}
+      {/* 4. ⏰ 시간대별 관계 흐름 */}
       <div className="flex flex-col gap-2">
         <p className="text-sm font-bold">⏰ 시간대별 관계 흐름</p>
         {[
@@ -124,11 +136,20 @@ function AdultFortuneCard({ fortune }: { fortune: AdultFortune }) {
         ))}
       </div>
 
-      {/* ── 주의 포인트 ── */}
+      {/* 5. 🧠 관계 심리 분석 */}
+      <div className="rounded-2xl border border-border bg-card p-4">
+        <p className="text-sm font-bold mb-2.5">🧠 관계 심리 분석</p>
+        <p className="text-sm leading-relaxed text-muted-foreground">{fortune.psychAnalysis}</p>
+      </div>
+
+      {/* 6. ⚠️ 주의 포인트 */}
       <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
         <p className="text-sm font-bold text-amber-700 mb-2">⚠️ 주의 포인트</p>
         <p className="text-sm leading-relaxed text-amber-800">{fortune.warning}</p>
       </div>
+
+      {/* 7. 📊 관계 운 점수 + 해석 */}
+      <ScoreSection score={fortune.score} interpretation={fortune.scoreInterpretation} />
 
     </div>
   )
@@ -138,7 +159,7 @@ function AdultFortuneCard({ fortune }: { fortune: AdultFortune }) {
 // 메인 컴포넌트
 // ────────────────────────────────────────────────────────────────────────────
 
-type Status = 'form' | 'loading' | 'done' | 'error'
+type PageStatus = 'form' | 'loading' | 'done' | 'error'
 type Gender = 'male' | 'female'
 type RelStatus = 'single' | 'crush' | 'dating'
 
@@ -152,11 +173,10 @@ const ERROR_MESSAGES: Record<string, string> = {
 }
 
 export default function AdultFortuneClient() {
-  const [pageStatus, setPageStatus] = useState<Status>('form')
+  const [pageStatus, setPageStatus] = useState<PageStatus>('form')
   const [fortune, setFortune] = useState<AdultFortune | null>(null)
   const [errorMsg, setErrorMsg] = useState('')
 
-  // 입력값
   const [birthYear, setBirthYear] = useState<number | null>(null)
   const [birthMonth, setBirthMonth] = useState<number | null>(null)
   const [birthDay, setBirthDay] = useState<number | null>(null)
@@ -194,7 +214,7 @@ export default function AdultFortuneClient() {
     return (
       <div className="flex flex-col items-center justify-center gap-4 px-4 py-24">
         <Loader2 size={28} className="animate-spin text-rose-500" />
-        <p className="text-sm text-muted-foreground">관계 운세를 분석하는 중...</p>
+        <p className="text-sm text-muted-foreground">관계 에너지를 분석하는 중...</p>
       </div>
     )
   }
@@ -244,7 +264,7 @@ export default function AdultFortuneClient() {
           <h1 className="text-xl font-bold">19금 사주</h1>
         </div>
         <p className="text-sm text-muted-foreground">
-          오늘 나의 관계·매력·끌림 에너지를 분석해드려요
+          오늘 관계에서 어떻게 행동할지 알려드려요
         </p>
       </div>
 
@@ -364,7 +384,6 @@ export default function AdultFortuneClient() {
         <Flame size={15} />
         오늘의 관계 운세 보기
       </button>
-
     </div>
   )
 }
