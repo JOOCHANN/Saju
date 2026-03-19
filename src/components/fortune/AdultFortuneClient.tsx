@@ -27,33 +27,6 @@ const STATUS_BADGE: Record<string, string> = {
 // 서브 컴포넌트
 // ────────────────────────────────────────────────────────────────────────────
 
-function ScoreSection({ score, interpretation }: { score: number; interpretation: string }) {
-  const percentile = Math.max(5, Math.round((1 - score / 100) * 100))
-  const color =
-    score >= 80 ? 'bg-rose-500' :
-    score >= 60 ? 'bg-pink-400' :
-    score >= 40 ? 'bg-orange-400' : 'bg-gray-400'
-
-  return (
-    <div className="rounded-2xl border border-border bg-card p-4">
-      <p className="text-sm font-bold mb-3">📊 관계 운 점수</p>
-      <div className="flex items-end gap-3 mb-2">
-        <span className="text-4xl font-bold leading-none text-rose-500">{score}</span>
-        <span className="text-sm text-muted-foreground mb-0.5">/ 100점</span>
-        <span className="ml-auto rounded-full bg-rose-100 px-2.5 py-1 text-xs font-bold text-rose-600">
-          상위 {percentile}%
-        </span>
-      </div>
-      <div className="h-2 w-full overflow-hidden rounded-full bg-muted mb-2.5">
-        <div
-          className={`h-full rounded-full transition-all duration-700 ${color}`}
-          style={{ width: `${score}%` }}
-        />
-      </div>
-      <p className="text-xs leading-relaxed text-muted-foreground">{interpretation}</p>
-    </div>
-  )
-}
 
 function AdultFortuneCard({ fortune }: { fortune: AdultFortune }) {
   const percentile = Math.max(5, Math.round((1 - fortune.score / 100) * 100))
@@ -147,9 +120,6 @@ function AdultFortuneCard({ fortune }: { fortune: AdultFortune }) {
         <p className="text-sm font-bold text-amber-700 mb-2">⚠️ 주의 포인트</p>
         <p className="text-sm leading-relaxed text-amber-800">{fortune.warning}</p>
       </div>
-
-      {/* 7. 📊 관계 운 점수 + 해석 */}
-      <ScoreSection score={fortune.score} interpretation={fortune.scoreInterpretation} />
 
     </div>
   )

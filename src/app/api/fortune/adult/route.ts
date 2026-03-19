@@ -15,20 +15,19 @@ export interface AdultFortune {
   status: 'single' | 'crush' | 'dating'
   energySummary: string        // 🔥 오늘의 관계 에너지 한 줄
   tension: string              // 💫 관계 텐션 (주도권·거리감·긴장감)
-  actionGuide: {               // 🎯 행동 가이드 (시간·방식·조건 포함)
+  actionGuide: {               // 🎯 행동 가이드 (시간·방식·조건·분기 포함)
     contact: string
     meeting: string
     conversation: string
   }
-  timeFlow: {                  // ⏰ 시간대별 관계 흐름
+  timeFlow: {                  // ⏰ 시간대별 미션
     morning: string
     afternoon: string
     night: string
   }
   psychAnalysis: string        // 🧠 관계 심리 분석
   warning: string              // ⚠️ 주의 포인트
-  score: number                // 📊 관계 운 점수 (1~100)
-  scoreInterpretation: string  // 점수 해석 (상위 % + 의미)
+  score: number                // 헤더 표시용 점수 (1~100)
   personalized: boolean
 }
 
@@ -92,7 +91,7 @@ async function generateAdultFortune(
   status: string,
   score: number,
   sajuContext?: string,
-): Promise<Omit<AdultFortune, 'date' | 'score' | 'scoreInterpretation' | 'status' | 'personalized'>> {
+): Promise<Omit<AdultFortune, 'date' | 'score' | 'status' | 'personalized'>> {
   const apiKey = process.env.OPENAI_API_KEY
   if (!apiKey) throw new Error('AI_KEY_MISSING')
 
@@ -115,37 +114,59 @@ ${statusGuide}
 
 관계 운 점수: ${score}점 (${scoreDesc})
 
-[작성 원칙]
-- 이 서비스의 목표: "오늘 관계에서 어떻게 행동할지 알려주는 의사결정 도구"
+[핵심 작성 원칙]
+- 목표: 단순 운세가 아닌 "상황별 대응 전략"처럼 느껴지게 만들기
 - 읽는 사람이 "내 얘기 같다 + 오늘 써먹을 수 있다" 느끼게 작성
 - 직설적이되 저급하지 않게 — 심리 분석 느낌
-- 추상적 표현 금지 (예: "조심하세요" → X)
 - 신체 묘사·성행위 묘사 절대 금지
-- 관계 텐션은 "주도권·거리감·긴장감·감정 깊이"로만 표현
-- 현재 상태(${statusKo})가 모든 섹션에 명확히 반영되어야 함
+- 현재 상태(${statusKo})가 모든 섹션에 명확히 반영
 ${sajuContext ? '- 사주 특성을 반영해 개인화 강화' : ''}
+
+[6가지 강화 규칙 — 모든 섹션에 적용]
+
+규칙1. 선택지 + 리스크 구조
+모든 주요 문장에 "행동 → 결과" 또는 "선택 → 리스크" 포함
+예: "먼저 다가가면 빠르게 가까워질 수 있지만, 타이밍이 맞지 않으면 부담으로 느껴질 수 있음"
+
+규칙2. 반응 기반 분기 (행동 가이드 필수)
+상대 반응에 따른 분기 로직 포함
+예: "답장이 1시간 내 오면 → 대화 이어가기 / 늦으면 → 추가 메시지 보내지 말고 기다리기"
+
+규칙3. 조건 기반 개인화 (각 섹션 최소 1개)
+"최근 연락 빈도가 줄었다면", "상대가 바쁜 상황이라면", "이미 감정 교류가 있다면" 등 조건 문장 포함
+
+규칙4. 관계 텐션 강화
+주도권·거리감·감정 깊이·긴장감 수준 명시, 반드시 "관계 방향이 바뀔 수 있는 순간" 1회 이상 언급
+
+규칙5. 시간대별 미션 구조
+단순 설명이 아닌 구체적 행동 미션 형태
+예: "오전: 가벼운 연결 (짧은 메시지 1회) / 오후: 관계 탐색 (질문 2개) / 저녁: 감정 대화 시도"
+
+규칙6. 주의 포인트 현실화
+추상적 경고 금지, 실제 상황 기반
+예: "답장이 늦어도 감정이 식었다고 단정하지 말 것 — 말투 변화에 과민 반응하면 오해가 커짐"
 
 반드시 아래 JSON만 응답 (마크다운/코드블록 금지):
 {
-  "energySummary": "오늘의 관계 에너지 한 줄 (25자 이내, ${statusKo} 상황에 맞는 구체적 묘사)",
-  "tension": "관계 텐션 분석 — 오늘 주도권은 누구에게 있는지, 거리감이 좁혀지는지 유지되는지, 긴장감 수준, 감정 깊이 방향 (3~4문장, ${statusKo} 맞춤)",
+  "energySummary": "오늘의 관계 에너지 한 줄 (25자 이내, ${statusKo} 상황 구체적 묘사)",
+  "tension": "관계 텐션 — 오늘 주도권(누가 리드), 거리감 변화(좁혀짐/유지/밀어냄), 긴장감 수준, 감정 깊이 방향을 구체적으로. 반드시 관계 방향이 바뀔 수 있는 순간 언급. 조건 문장 최소 1개 포함 (4~5문장)",
   "actionGuide": {
-    "contact": "연락: 언제(구체적 시간대) + 어떻게(메시지 톤/방식) + 어떤 상황에서 (2문장)",
-    "meeting": "만남: 언제(요일/시간) + 어디서(장소 분위기) + 어떤 분위기로 (2문장)",
-    "conversation": "대화: 어떤 주제로 + 질문 vs 공유 비율 + 피해야 할 말 (2문장)"
+    "contact": "연락 — 구체적 시간대 + 메시지 톤/방식 + 상대 반응에 따른 분기 로직(답장 빠를 때/늦을 때 각각 대응) (3문장)",
+    "meeting": "만남 — 언제(요일/시간) + 장소 분위기 + 선택→리스크 구조 포함 (2~3문장)",
+    "conversation": "대화 — 주제 + 질문 vs 공유 비율 + 조건 문장(상대 반응이 미적지근하면/감정 표현이 있다면) (2~3문장)"
   },
   "timeFlow": {
-    "morning": "오전(06~12시) 관계 에너지 + ${statusKo}에게 추천 행동 (2문장)",
-    "afternoon": "오후(12~18시) 관계 에너지 + ${statusKo}에게 추천 행동 (2문장)",
-    "night": "저녁(18~24시) 관계 에너지 + ${statusKo}에게 추천 행동 (2문장)"
+    "morning": "오전 미션 — 구체적 행동 1가지 + 선택→리스크 포함 (2문장)",
+    "afternoon": "오후 미션 — 구체적 행동 1가지 + 조건 문장 포함 (2문장)",
+    "night": "저녁 미션 — 구체적 행동 1가지 + 반응 분기 포함 (2문장)"
   },
-  "psychAnalysis": "관계 심리 분석 — ${statusKo} 상황에서 오늘 상대(또는 잠재적 인연)의 심리 흐름, 나의 감정 패턴, 관계 역학 (3~4문장)",
-  "warning": "${statusKo} 상황에서 오늘 관계가 틀어질 수 있는 구체적 요소와 대처법 (2~3문장)"
+  "psychAnalysis": "관계 심리 분석 — ${statusKo} 상황에서 상대(또는 잠재 인연)의 심리 흐름, 나의 감정 패턴, 관계 역학. 조건 문장 최소 1개 포함 (4~5문장)",
+  "warning": "실제 상황 기반 주의사항 — 추상적 경고 금지, 구체적 행동 패턴으로 서술. 조건 기반 1개 이상 (2~3문장)"
 }`
 
   const message = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
-    max_tokens: 2200,
+    max_tokens: 2500,
     messages: [{ role: 'user', content: prompt }],
   })
 
@@ -173,20 +194,6 @@ ${sajuContext ? '- 사주 특성을 반영해 개인화 강화' : ''}
     psychAnalysis: String(p.psychAnalysis ?? ''),
     warning: String(p.warning ?? ''),
   }
-}
-
-// ────────────────────────────────────────────────────────────────────────────
-// 점수 해석 생성 (서버에서 결정론적으로 계산)
-// ────────────────────────────────────────────────────────────────────────────
-
-function buildScoreInterpretation(score: number): string {
-  const percentile = Math.max(5, Math.round((1 - score / 100) * 100))
-
-  if (score >= 85) return `상위 ${percentile}% 수준 — 관계 진전·새 인연 모두에서 강한 끌림 에너지가 흐르는 날`
-  if (score >= 70) return `상위 ${percentile}% 수준 — 평소보다 관계 진전 가능성이 높고 감정 표현이 잘 통하는 날`
-  if (score >= 55) return `상위 ${percentile}% 수준 — 큰 변화보다 관계를 안정적으로 유지하기 좋은 날`
-  if (score >= 40) return `상위 ${percentile}% 수준 — 감정 소비를 줄이고 자신에게 집중하는 것이 유리한 날`
-  return `상위 ${percentile}% 수준 — 관계보다 내면 정리가 먼저인 날, 큰 결정은 내일로`
 }
 
 // ────────────────────────────────────────────────────────────────────────────
@@ -237,7 +244,6 @@ export async function GET(request: Request) {
   const statusOffset = status === 'single' ? 1001 : status === 'crush' ? 2003 : 3007
   const seed = makeSeed(date, seedExtra + genderOffset + statusOffset)
   const score = computeScore(seed)
-  const scoreInterpretation = buildScoreInterpretation(score)
 
   // ── 사주 컨텍스트 (생년월일 완전 입력 시) ──────────────────────────────
   let sajuContext: string | undefined
@@ -259,7 +265,7 @@ export async function GET(request: Request) {
   }
 
   // ── AI 텍스트 생성 ──────────────────────────────────────────────────────
-  let textContent: Omit<AdultFortune, 'date' | 'score' | 'scoreInterpretation' | 'status' | 'personalized'>
+  let textContent: Omit<AdultFortune, 'date' | 'score' | 'status' | 'personalized'>
   try {
     textContent = await generateAdultFortune(date, year, gender, status, score, sajuContext)
   } catch (err) {
@@ -278,7 +284,6 @@ export async function GET(request: Request) {
     status,
     ...textContent,
     score,
-    scoreInterpretation,
     personalized: !!sajuContext,
   }
 
