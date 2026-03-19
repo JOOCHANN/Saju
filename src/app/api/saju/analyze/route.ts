@@ -1,7 +1,7 @@
 // 사주 계산 + AI 해석 API — SSE 스트리밍
 // 1단계: 사주 계산 결과 즉시 전송
-// 2단계: Claude AI 해석 텍스트 스트리밍
-import Anthropic from '@anthropic-ai/sdk'
+// 2단계: OpenAI 해석 텍스트 스트리밍
+import OpenAI from 'openai'
 import { z } from 'zod'
 import { calculateSaju } from '@/lib/saju'
 import { buildSajuUserMessage, SAJU_SYSTEM_PROMPT } from '@/lib/ai/prompts'
@@ -47,30 +47,31 @@ export async function POST(request: Request) {
       // 1단계: 사주 계산 결과 즉시 전송
       enqueue(JSON.stringify({ type: 'saju', payload: sajuResult }))
 
-      // ANTHROPIC_API_KEY 없으면 해석 없이 종료
-      const apiKey = process.env.ANTHROPIC_API_KEY
+      // OPENAI_API_KEY 없으면 해석 없이 종료
+      const apiKey = process.env.OPENAI_API_KEY
       if (!apiKey) {
         enqueue('[DONE]')
         controller.close()
         return
       }
 
-      // 2단계: AI 해석 스트리밍
+      // 2단계: OpenAI 해석 스트리밍
       try {
-        const anthropic = new Anthropic({ apiKey })
-        const messageStream = anthropic.messages.stream({
-          model: 'claude-haiku-4-5-20251001',
+        const openai = new OpenAI({ apiKey })
+        const messageStream = await openai.chat.completions.create({
+          model: 'gpt-4o-mini',
           max_tokens: 1500,
-          system: SAJU_SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: userMessage }],
+          stream: true,
+          messages: [
+            { role: 'system', content: SAJU_SYSTEM_PROMPT },
+            { role: 'user', content: userMessage },
+          ],
         })
 
-        for await (const event of messageStream) {
-          if (
-            event.type === 'content_block_delta' &&
-            event.delta.type === 'text_delta'
-          ) {
-            enqueue(JSON.stringify({ type: 'text', text: event.delta.text }))
+        for await (const chunk of messageStream) {
+          const text = chunk.choices[0]?.delta?.content
+          if (text) {
+            enqueue(JSON.stringify({ type: 'text', text }))
           }
         }
       } catch (err) {
